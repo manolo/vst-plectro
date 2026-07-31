@@ -12,9 +12,9 @@
 
 #include "ParameterIDs.h"
 #include "engine/SoundFontEngine.h"
-#include "humanizer/Types.h"
-#include "humanizer/StreamingHumanizer.h"
-#include "humanizer/LayerSet.h"
+#include "core/Types.h"
+#include "core/StreamingScheduler.h"
+#include "core/LayerSet.h"
 #include "KeyswitchSupport.h"
 
 namespace plectro {
@@ -96,7 +96,7 @@ public:
     bool isKeyswitchSessionActive() const { return keyswitchSeen_.load(std::memory_order_relaxed); }
 
 private:
-    HumanizerParams readParams() const;
+    PlaybackParams readParams() const;
     juce::String bundledSoundFontPath() const; // <bundle>/Contents/Resources/<edition SF2>
     void ingestMidi(const juce::MidiBuffer& midi);
     void renderScheduled(juce::AudioBuffer<float>& buffer);
@@ -105,7 +105,7 @@ private:
     void rebuildFamilyBanks(); // which SF2 banks are present per family, for the "All" ensembles
 
     // Ensemble layers. A normal instrument is a single layer; an "All <family>" selection is a
-    // central dehumanized anchor plus humanized copies (see humanizer/LayerSet.h). Reconfigure
+    // central dehumanized anchor plus humanized copies (see core/LayerSet.h). Reconfigure
     // rebuilds the active layers when the instrument selection changes, closing any open voices.
     void reconfigureLayers(int selection, std::int64_t atSample, std::vector<VoiceCommand>& offs);
     void pushToLayers(const NoteEvent& e);
@@ -117,7 +117,7 @@ private:
     // A humanizer per rendered layer, plus its routing (bank, seed offset, gain, neutralize).
     struct Layer
     {
-        StreamingHumanizer stream;
+        StreamingScheduler stream;
         int bank = 0;
         bool neutralize = false; // central anchor: force per note humanization off
         int seedOffset = 0;      // decorrelates this layer from the others

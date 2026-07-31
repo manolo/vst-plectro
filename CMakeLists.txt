@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(HVST_BUILD_PLUGIN "Build the JUCE plugin (VST3/AU)" ON)
-option(HVST_BUILD_TESTS  "Build the humanizer_core unit tests" ON)
+option(HVST_BUILD_TESTS  "Build the plectro_core unit tests" ON)
 # macOS only: embed FluidSynth and its dependencies into each bundle and rewrite them to @rpath so
 # the plugin loads on a clean machine with no Homebrew. Off by default so iterative dev builds stay
 # fast; turn on for release/CI (-DPLECTRO_BUNDLE_DEPS=ON).
@@ -19,18 +19,18 @@ set(PLECTRO_ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets"
     CACHE PATH "Directory holding the bundled SF2 assets (versioned in the repo via git-lfs)")
 
 # ---------------------------------------------------------------------------
-# humanizer_core: JUCE-free, engine-free pure logic. Unit tested on its own.
+# plectro_core: JUCE-free, engine-free pure logic. Unit tested on its own.
 # ---------------------------------------------------------------------------
 # Shared, public safe core. The humanization math is NOT here: it lives in source/pro/ and is
 # added per edition below, so the free build never compiles the Pro algorithms.
-add_library(humanizer_core STATIC
-    source/humanizer/StreamingHumanizer.cpp
-    source/humanizer/PresetMapping.cpp
-    source/humanizer/LayerSet.cpp)
-target_include_directories(humanizer_core PUBLIC source)
-target_compile_features(humanizer_core PUBLIC cxx_std_20)
+add_library(plectro_core STATIC
+    source/core/StreamingScheduler.cpp
+    source/core/PresetMapping.cpp
+    source/core/LayerSet.cpp)
+target_include_directories(plectro_core PUBLIC source)
+target_compile_features(plectro_core PUBLIC cxx_std_20)
 # Needed on Linux: this static lib is linked into the VST3 shared object.
-set_target_properties(humanizer_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(plectro_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # ---------------------------------------------------------------------------
 # Tests (Catch2 via FetchContent). No JUCE, no engine: fast.
@@ -109,7 +109,7 @@ if(HVST_BUILD_PLUGIN)
         if(pro)
         else()
             target_sources(${target} PRIVATE
-                source/humanizer/NeutralVariationSource.cpp
+                source/core/NeutralVariationSource.cpp
                 source/FreeEditor.cpp)
         endif()
         target_include_directories(${target} PRIVATE source)
@@ -123,7 +123,7 @@ if(HVST_BUILD_PLUGIN)
             HVST_PRODUCT_NAME="${productName}"
             HVST_DEFAULT_BANK=0)
         target_link_libraries(${target} PRIVATE
-            humanizer_core
+            plectro_core
             juce::juce_audio_utils
             juce::juce_dsp
             PUBLIC

@@ -4,8 +4,8 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
-#include "humanizer/Types.h"
-#include "humanizer/KeyswitchLayout.h"
+#include "core/Types.h"
+#include "core/KeyswitchLayout.h"
 
 // Per-variant identity, injected by CMake (one build per instrument family). Fallbacks keep
 // a single-plugin build working.

@@ -41,7 +41,7 @@ MuseScore (normal tremolo beams + normal dynamics)
   -> audio -> MuseScore mixer
 ```
 
-The humanization logic lives in a JUCE-free, unit-tested static library (`humanizer_core`);
+The humanization logic lives in a JUCE-free, unit-tested static library (`plectro_core`);
 the plugin is a thin JUCE wrapper plus a FluidSynth adapter.
 
 ## Build
@@ -57,7 +57,7 @@ ctest --test-dir build --output-on-failure   # runs the core unit tests
 ```
 
 Without FluidSynth the plugin still builds, but silent (handy for CI smoke builds). The
-`humanizer_core` tests never need JUCE or FluidSynth, so they are fast:
+`plectro_core` tests never need JUCE or FluidSynth, so they are fast:
 
 ```sh
 cmake -B build -DHVST_BUILD_PLUGIN=OFF

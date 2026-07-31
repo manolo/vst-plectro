@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include "humanizer/LayerSet.h"
+#include "core/LayerSet.h"
 
 #include <algorithm>
 #include <cmath>
@@ -68,7 +68,7 @@ TEST_CASE("All family layers: central anchor + humanized copies", "[layerset]")
     for (std::size_t i = 1; i < layers.size(); ++i)
     {
         REQUIRE_FALSE(layers[i].neutralize);
-        REQUIRE_THAT(layers[i].gainMul, WithinAbs(kEnsembleHumanizedGain, 1e-6f));
+        REQUIRE_THAT(layers[i].gainMul, WithinAbs(kEnsembleCopyGain, 1e-6f));
         REQUIRE(layers[i].gainMul < layers[0].gainMul); // the central anchor carries more weight
     }
 

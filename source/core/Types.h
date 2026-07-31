@@ -78,13 +78,13 @@ struct VoiceCommand
 };
 
 // All humanization parameters. Populated from the plugin's APVTS each block.
-struct HumanizerParams
+struct PlaybackParams
 {
     double sampleRate = 44100.0;
 
     // Tremolo. The plugin is always in Auto: the host tremolo keyswitch is used when present, and
     // the rhythmic detector merges repeated notes otherwise. tremoloOn is the master enable;
-    // enableDetection follows it (kept as a field for the batch Humanizer/TremoloDetector).
+    // enableDetection follows it (kept as a field for the batch tremolo detector).
     bool tremoloOn = true;
     bool enableDetection = true;
     double detectWindowMs = 90.0; // max gap between repeated note-ons to count as tremolo
@@ -119,7 +119,7 @@ struct HumanizerParams
 
     int presetFor(Articulation a) const { return presetByArticulation[static_cast<int>(a)]; }
 
-    // Legacy velocity bands, used only by the batch Humanizer (velocity-split fonts).
+    // Legacy velocity bands, used only by the batch tremolo path (velocity-split fonts).
     int pickedVelocity = 64;
     int tremoloVelocity = 127;
 
@@ -145,7 +145,7 @@ struct HumanizerParams
 // Zero the per note expressive variation (used by the Humanize toggle and by editions
 // that ship without humanization). Tremolo detection and articulation routing are not
 // touched.
-inline void neutralizePerNoteVariation(HumanizerParams& p)
+inline void neutralizePerNoteVariation(PlaybackParams& p)
 {
     p.jitterMs = 0.0;
     p.breathingDepthMs = 0.0;

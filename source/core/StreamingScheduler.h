@@ -19,12 +19,12 @@
 
 namespace plectro {
 
-class StreamingHumanizer
+class StreamingScheduler
 {
 public:
     void reset();
-    void setParams(const HumanizerParams& p) { params_ = p; }
-    const HumanizerParams& params() const { return params_; }
+    void setParams(const PlaybackParams& p) { params_ = p; }
+    const PlaybackParams& params() const { return params_; }
 
     void push(const NoteEvent& e);
     void advance(std::int64_t latestInputSample, std::vector<VoiceCommand>& out);
@@ -61,7 +61,7 @@ private:
     // in Pro). Selected at link time; see VariationSource.h.
     const VariationSource* variation_ = &defaultVariationSource();
 
-    HumanizerParams params_;
+    PlaybackParams params_;
     std::map<int, std::deque<NoteEvent>> perKey_;
     std::map<int, KeyState> state_;
     int nextVoiceId_ = 0;

@@ -59,7 +59,7 @@ std::vector<LayerSpec> buildLayerSet(const std::vector<int>& familyBanks, bool i
 
     for (std::size_t i = 1; i < familyBanks.size(); ++i)
         layers.push_back({ familyBanks[i], /*neutralize=*/false,
-                           /*seedOffset=*/static_cast<int>(i), kEnsembleHumanizedGain });
+                           /*seedOffset=*/static_cast<int>(i), kEnsembleCopyGain });
 
     // Spread the layers across the panorama so the section sounds like players sitting side by side.
     const std::size_t n = layers.size();

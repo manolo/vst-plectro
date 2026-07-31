@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "humanizer/KeyswitchLayout.h"
+#include "core/KeyswitchLayout.h"
 
 #include <set>
 #include <string>

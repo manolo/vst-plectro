@@ -26,10 +26,10 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../source/pro")
         ../source/pro/Humanizer.cpp
         ../source/pro/TremoloDetector.cpp)
 else()
-    target_sources(core_tests PRIVATE ../source/humanizer/NeutralVariationSource.cpp)
+    target_sources(core_tests PRIVATE ../source/core/NeutralVariationSource.cpp)
 endif()
 
-target_link_libraries(core_tests PRIVATE humanizer_core Catch2::Catch2WithMain)
+target_link_libraries(core_tests PRIVATE plectro_core Catch2::Catch2WithMain)
 target_compile_features(core_tests PRIVATE cxx_std_20)
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)

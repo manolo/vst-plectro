@@ -19,7 +19,7 @@ enum class Family { None, Bandurria, Laud, Mandolina };
 // The central anchor is trimmed (about -3 dB) so it blends into the section instead of leading it,
 // while staying in tune and on tempo; the humanized copies sit quieter still as a halo around it.
 inline constexpr float kEnsembleCentralGain   = 0.7f;
-inline constexpr float kEnsembleHumanizedGain = 0.5f;
+inline constexpr float kEnsembleCopyGain = 0.5f;
 
 // Stereo placement of the ensemble. The layers are spread across the panorama (pan -1 = hard left,
 // +1 = hard right) up to this width, so the section reads as several players sitting side by side

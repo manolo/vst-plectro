@@ -1,4 +1,4 @@
-#include "StreamingHumanizer.h"
+#include "StreamingScheduler.h"
 
 #include <algorithm>
 #include <cmath>
@@ -6,19 +6,19 @@
 
 namespace plectro {
 
-void StreamingHumanizer::reset()
+void StreamingScheduler::reset()
 {
     perKey_.clear();
     state_.clear();
     nextVoiceId_ = 0;
 }
 
-void StreamingHumanizer::push(const NoteEvent& e)
+void StreamingScheduler::push(const NoteEvent& e)
 {
     perKey_[e.key].push_back(e);
 }
 
-void StreamingHumanizer::advance(std::int64_t latestInput, std::vector<VoiceCommand>& out)
+void StreamingScheduler::advance(std::int64_t latestInput, std::vector<VoiceCommand>& out)
 {
     const std::int64_t W = std::max<std::int64_t>(1, params_.detectWindowSamples());
     const std::int64_t L = params_.lookaheadSamples;
@@ -253,7 +253,7 @@ void StreamingHumanizer::advance(std::int64_t latestInput, std::vector<VoiceComm
     }
 }
 
-void StreamingHumanizer::tremoloActivity(bool& keyswitchTremolo, bool& detectorTremolo,
+void StreamingScheduler::tremoloActivity(bool& keyswitchTremolo, bool& detectorTremolo,
                                          bool& keyswitchTremoloLegato) const
 {
     keyswitchTremolo = false;
@@ -275,7 +275,7 @@ void StreamingHumanizer::tremoloActivity(bool& keyswitchTremolo, bool& detectorT
     }
 }
 
-void StreamingHumanizer::forceCloseAll(std::int64_t atSample, std::vector<VoiceCommand>& out)
+void StreamingScheduler::forceCloseAll(std::int64_t atSample, std::vector<VoiceCommand>& out)
 {
     const std::int64_t L = params_.lookaheadSamples;
     std::int64_t when = atSample + L;

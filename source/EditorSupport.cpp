@@ -1,6 +1,6 @@
 #include "EditorSupport.h"
 #include "Edition.h"
-#include "humanizer/LayerSet.h"
+#include "core/LayerSet.h"
 
 #include <algorithm>
 

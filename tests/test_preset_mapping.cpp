@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "humanizer/PresetMapping.h"
+#include "core/PresetMapping.h"
 
 using namespace plectro;
 

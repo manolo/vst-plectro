@@ -1,12 +1,12 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "humanizer/StreamingHumanizer.h"
+#include "core/StreamingScheduler.h"
 
 using namespace plectro;
 
-static HumanizerParams makeParams()
+static PlaybackParams makeParams()
 {
-    HumanizerParams p;
+    PlaybackParams p;
     p.sampleRate = 48000.0;
     p.detectWindowMs = 90.0; // 4320 samples
     p.jitterMs = 0.0;
@@ -29,7 +29,7 @@ static int countType(const std::vector<VoiceCommand>& c, VoiceCommandType t)
 
 TEST_CASE("Picked note plays immediately and keeps its full duration", "[streaming]")
 {
-    StreamingHumanizer s;
+    StreamingScheduler s;
     auto p = makeParams();
     p.lookaheadSamples = 480; // small, immediate-attack model
     s.setParams(p);
@@ -55,7 +55,7 @@ TEST_CASE("Picked note plays immediately and keeps its full duration", "[streami
 
 TEST_CASE("Tremolo starts with an immediate pick then a sustained tremolo voice", "[streaming]")
 {
-    StreamingHumanizer s;
+    StreamingScheduler s;
     auto p = makeParams();
     p.lookaheadSamples = 480;
     s.setParams(p);
@@ -84,7 +84,7 @@ TEST_CASE("Tremolo starts with an immediate pick then a sustained tremolo voice"
 
 TEST_CASE("Long tremolo across multiple blocks stays one voice", "[streaming]")
 {
-    StreamingHumanizer s;
+    StreamingScheduler s;
     s.setParams(makeParams());
     std::vector<VoiceCommand> all;
 
@@ -116,7 +116,7 @@ TEST_CASE("Long tremolo across multiple blocks stays one voice", "[streaming]")
 
 TEST_CASE("Explicit articulation selects its preset and overrides the tremolo detector", "[streaming][articulation]")
 {
-    StreamingHumanizer s;
+    StreamingScheduler s;
     auto p = makeParams();
     p.lookaheadSamples = 480;
     // presetByArticulation defaults: Auto=0 Picked=0 Tremolo=1 Pizzicato=2 Harmonic=3 Mute=4.
@@ -143,7 +143,7 @@ TEST_CASE("Explicit articulation selects its preset and overrides the tremolo de
 
 TEST_CASE("Explicit tremolo keyswitch sustains one tremolo voice for repeated notes", "[streaming][articulation]")
 {
-    StreamingHumanizer s;
+    StreamingScheduler s;
     auto p = makeParams();
     p.lookaheadSamples = 480;
     s.setParams(p);
@@ -173,7 +173,7 @@ TEST_CASE("Explicit tremolo sustains one voice even when strokes are wider than 
     // At a slow tempo MuseScore spaces the expanded tremolo strokes far apart, wider than the
     // detector window. An explicit tremolo keyswitch must still sustain one voice (the host has
     // told us it is a tremolo); the window only gates the Auto detector.
-    StreamingHumanizer s;
+    StreamingScheduler s;
     auto p = makeParams();               // detectWindowMs 90 -> 4320 samples at 48 kHz
     p.lookaheadSamples = 480;
     p.beatSamples = 48000;               // 1 beat = 1 s (slow tempo); the strokes below fit within it
@@ -199,8 +199,8 @@ TEST_CASE("Explicit tremolo sustains one voice even when strokes are wider than 
 TEST_CASE("Explicit tremolo picks P+T when standalone and Trem when legato", "[streaming][articulation]")
 {
     auto firstTremPreset = [](bool legato) {
-        StreamingHumanizer s;
-        HumanizerParams p;                 // presetByArticulation defaults: Tremolo -> 1 (Trem)
+        StreamingScheduler s;
+        PlaybackParams p;                 // presetByArticulation defaults: Tremolo -> 1 (Trem)
         p.tremoloPickedPreset = 2;         // P+T
         s.setParams(p);
         NoteEvent on{}; on.sample = 1000; on.key = 67; on.velocity = 90;
@@ -221,7 +221,7 @@ TEST_CASE("Explicit tremolo picks P+T when standalone and Trem when legato", "[s
 
 TEST_CASE("Auto articulation still promotes repeated notes to a tremolo voice", "[streaming][articulation]")
 {
-    StreamingHumanizer s;
+    StreamingScheduler s;
     auto p = makeParams();
     p.lookaheadSamples = 480;
     s.setParams(p);
@@ -259,7 +259,7 @@ TEST_CASE("Tremolo is a span articulation; point articulations are not", "[strea
 TEST_CASE("A keyswitch retrigger between two tremolo spans yields two separate tremolo voices",
           "[streaming][articulation][span]")
 {
-    StreamingHumanizer s;
+    StreamingScheduler s;
     auto p = makeParams();
     p.lookaheadSamples = 480;
     s.setParams(p);
@@ -303,7 +303,7 @@ TEST_CASE("With detection off, Auto rapid repeats stay discrete (no tremolo prom
     // When a keyswitch-aware host drives articulations, the plugin turns the rhythmic detector off
     // (enableDetection == false). Rapid repeated notes, as an ornament expansion produces, must then
     // stay discrete picked notes instead of merging into a false sustained tremolo.
-    StreamingHumanizer s;
+    StreamingScheduler s;
     auto p = makeParams();
     p.lookaheadSamples = 480;
     p.enableDetection = false;
@@ -328,7 +328,7 @@ TEST_CASE("With detection off, Auto rapid repeats stay discrete (no tremolo prom
 TEST_CASE("Detune is deterministic, decorrelates per instance, and zero when off", "[streaming]")
 {
     auto firstOnDetune = [](std::uint64_t instanceSeed, double cents) {
-        StreamingHumanizer s;
+        StreamingScheduler s;
         auto p = makeParams();
         p.detuneCents = cents;
         p.instanceSeed = instanceSeed;
@@ -350,7 +350,7 @@ TEST_CASE("Detune is deterministic, decorrelates per instance, and zero when off
 TEST_CASE("Streaming output is deterministic", "[streaming]")
 {
     auto run = []() {
-        StreamingHumanizer s;
+        StreamingScheduler s;
         auto p = makeParams();
         p.jitterMs = 8.0;
         p.variationDepth = 0.1;

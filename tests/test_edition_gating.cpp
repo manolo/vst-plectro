@@ -1,12 +1,12 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "humanizer/Types.h"
+#include "core/Types.h"
 
 using namespace plectro;
 
 TEST_CASE("neutralizePerNoteVariation zeroes the per note humanization")
 {
-    HumanizerParams p;
+    PlaybackParams p;
     p.jitterMs = 15.0;
     p.breathingDepthMs = 15.0;
     p.variationDepth = 0.1;

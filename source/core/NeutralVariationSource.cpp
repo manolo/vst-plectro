@@ -10,16 +10,16 @@ namespace plectro {
 namespace {
 struct NeutralVariationSource : VariationSource
 {
-    double timingJitter(const HumanizerParams&, std::int64_t, int) const override { return 0.0; }
-    double breathing(const HumanizerParams&, std::int64_t) const override { return 0.0; }
-    float gainVariation(const HumanizerParams&, std::int64_t, int) const override { return 1.0f; }
-    float applyGain(const HumanizerParams&, int velocity, float) const override
+    double timingJitter(const PlaybackParams&, std::int64_t, int) const override { return 0.0; }
+    double breathing(const PlaybackParams&, std::int64_t) const override { return 0.0; }
+    float gainVariation(const PlaybackParams&, std::int64_t, int) const override { return 1.0f; }
+    float applyGain(const PlaybackParams&, int velocity, float) const override
     {
         return static_cast<float>(std::clamp(velocity, 0, 127)) / 127.0f;
     }
-    float detune(const HumanizerParams&, std::int64_t, int) const override { return 0.0f; }
-    double pitchDrift(const HumanizerParams&, std::int64_t) const override { return 0.0; }
-    std::int64_t lengthOffset(const HumanizerParams&, std::int64_t, std::int64_t rawOff, int) const override
+    float detune(const PlaybackParams&, std::int64_t, int) const override { return 0.0f; }
+    double pitchDrift(const PlaybackParams&, std::int64_t) const override { return 0.0; }
+    std::int64_t lengthOffset(const PlaybackParams&, std::int64_t, std::int64_t rawOff, int) const override
     {
         return rawOff;
     }

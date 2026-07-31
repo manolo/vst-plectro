@@ -1,7 +1,7 @@
 #include "PluginProcessor.h"
 #include "EditorSupport.h"
 #include "Edition.h"
-#include "humanizer/PresetMapping.h"
+#include "core/PresetMapping.h"
 
 #include <algorithm>
 #include <cmath>
@@ -62,9 +62,9 @@ PlectroProcessor::PlectroProcessor()
         p->setValueNotifyingHost(p->convertTo0to1(static_cast<float>(juce::Random::getSystemRandom().nextInt(100000))));
 }
 
-HumanizerParams PlectroProcessor::readParams() const
+PlaybackParams PlectroProcessor::readParams() const
 {
-    HumanizerParams p;
+    PlaybackParams p;
     p.sampleRate = sampleRate_;
     p.tremoloOn = apvts_.getRawParameterValue(pid::tremoloOn)->load() > 0.5f;
     // Auto: the rhythmic detector runs only when the host does NOT drive articulations by keyswitch.
@@ -339,7 +339,7 @@ void PlectroProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
 
     auto p = readParams();
     // Beat length from the host tempo, so an explicit tremolo can wait one beat for its next stroke
-    // at slow tempo (see StreamingHumanizer). 0 leaves the humanizer's default.
+    // at slow tempo (see StreamingScheduler). 0 leaves the humanizer's default.
     p.beatSamples = bpm > 0.0 ? static_cast<std::int64_t>(60.0 / bpm * sampleRate_) : 0;
 
     // Reconfigure the ensemble layers when the instrument selection changes (and on the first
@@ -361,7 +361,7 @@ void PlectroProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     // and the central anchor forced dehumanized (in tune, on tempo).
     for (int i = 0; i < activeLayers_; ++i)
     {
-        HumanizerParams lp = p;
+        PlaybackParams lp = p;
         lp.bank = layers_[static_cast<std::size_t>(i)].bank;
         lp.instanceSeed = p.instanceSeed + static_cast<std::uint64_t>(layers_[static_cast<std::size_t>(i)].seedOffset);
         if (layers_[static_cast<std::size_t>(i)].neutralize)

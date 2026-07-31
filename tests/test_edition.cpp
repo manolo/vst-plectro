@@ -5,7 +5,7 @@
 
 using namespace plectro;
 
-// humanizer_core (and the test binary) are compiled without PLECTRO_PRO,
+// plectro_core (and the test binary) are compiled without PLECTRO_PRO,
 // so kEdition must be the free edition here.
 TEST_CASE("free edition is the default build")
 {

@@ -4,7 +4,7 @@
 #include <atomic>
 #include <cstring>
 
-#include "humanizer/KeyswitchLayout.h"
+#include "core/KeyswitchLayout.h"
 
 namespace plectro {
 
