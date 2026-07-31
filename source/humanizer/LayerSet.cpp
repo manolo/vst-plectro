@@ -51,14 +51,15 @@ std::vector<LayerSpec> buildLayerSet(const std::vector<int>& familyBanks, bool i
         return layers;
     }
 
-    // Ensemble. The central anchor is the lowest bank, kept in tune and on tempo, at full weight
-    // so it leads the section. Then one humanized copy per family bank (including the central, so
-    // it is duplicated), each with a distinct seed offset and sitting quieter around the anchor.
+    // Ensemble. The central anchor is the lowest bank, kept in tune and on tempo, at full weight so
+    // it leads the section. Then one humanized copy per OTHER family bank (the central is not
+    // duplicated), each with a distinct seed offset and sitting quieter around the anchor. A single
+    // bank family therefore renders as just the central.
     layers.push_back({ familyBanks.front(), /*neutralize=*/true, /*seedOffset=*/0, /*gainMul=*/1.0f });
 
-    for (std::size_t i = 0; i < familyBanks.size(); ++i)
+    for (std::size_t i = 1; i < familyBanks.size(); ++i)
         layers.push_back({ familyBanks[i], /*neutralize=*/false,
-                           /*seedOffset=*/static_cast<int>(i) + 1, kEnsembleHumanizedGain });
+                           /*seedOffset=*/static_cast<int>(i), kEnsembleHumanizedGain });
 
     return layers;
 }

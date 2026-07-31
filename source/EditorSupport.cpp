@@ -38,7 +38,7 @@ void populateInstrumentBox(juce::ComboBox& box, const std::vector<SoundFontEngin
         const bool lastOfFamily = (i + 1 >= instr.size()) || (familyOf(instr[i + 1].bank) != fam);
         if (lastOfFamily)
         {
-            box.addItem(juce::String(prefix[fam]) + "All", allBank[fam] + 1);
+            box.addItem(juce::String(prefix[fam]) + "Ensemble", allBank[fam] + 1);
             if (i + 1 < instr.size())
                 box.addSeparator();
         }
@@ -48,7 +48,7 @@ void populateInstrumentBox(juce::ComboBox& box, const std::vector<SoundFontEngin
 juce::String instrumentNameForBank(int bank)
 {
     if (bank == kAllBandurria || (bank >= 0 && bank <= 9))   return "Bandurria";
-    if (bank == kAllLaud || (bank >= 10 && bank <= 19))      return juce::String::fromUTF8("La\xc3\xba" "d");
+    if (bank == kAllLaud || (bank >= 10 && bank <= 19))      return "Laud";
     if (bank == kAllMandolina || (bank >= 20 && bank <= 29)) return "Mandolina";
     return juce::String::fromUTF8(kEdition.productName);
 }

@@ -31,9 +31,11 @@ HumanLookAndFeel::HumanLookAndFeel()
     setColour(juce::ToggleButton::tickColourId, accent);
     setColour(juce::TextButton::buttonColourId, panel);
     setColour(juce::TextButton::textColourOffId, text);
-    setColour(juce::TooltipWindow::backgroundColourId, juce::Colour(0xff33353d));
+    // Tooltips get a warm, lighter box with an accent border so they clearly read as a tooltip
+    // against the cool dark panels.
+    setColour(juce::TooltipWindow::backgroundColourId, juce::Colour(0xff4a453a));
     setColour(juce::TooltipWindow::textColourId, text);
-    setColour(juce::TooltipWindow::outlineColourId, juce::Colour(0xff45474f));
+    setColour(juce::TooltipWindow::outlineColourId, accent);
 }
 
 void HumanLookAndFeel::drawTooltip(juce::Graphics& g, const juce::String& tip, int width, int height)
@@ -43,7 +45,15 @@ void HumanLookAndFeel::drawTooltip(juce::Graphics& g, const juce::String& tip, i
     g.drawRect(0, 0, width, height, 1);
     g.setColour(findColour(juce::TooltipWindow::textColourId));
     g.setFont(juce::Font(juce::FontOptions(13.0f)));
-    g.drawFittedText(tip, 8, 5, width - 16, height - 10, juce::Justification::topLeft, 10);
+    g.drawFittedText(tip, 8, 6, width - 16, height - 14, juce::Justification::topLeft, 10);
+}
+
+juce::Rectangle<int> HumanLookAndFeel::getTooltipBounds(const juce::String& text, juce::Point<int> screenPos,
+                                                        juce::Rectangle<int> parentArea)
+{
+    // Start from the default bounds, then add height for extra padding (mostly at the bottom).
+    auto b = juce::LookAndFeel_V2::getTooltipBounds(text, screenPos, parentArea);
+    return b.withHeight(b.getHeight() + 10).constrainedWithin(parentArea);
 }
 
 void RoundButtonLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b, const juce::Colour&,

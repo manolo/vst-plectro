@@ -23,6 +23,9 @@ public:
     HumanLookAndFeel();
     // Square, opaque tooltip (the default rounded fill left white triangles in the corners).
     void drawTooltip(juce::Graphics&, const juce::String& text, int width, int height) override;
+    // A bit taller than the default so the text has breathing room, especially at the bottom.
+    juce::Rectangle<int> getTooltipBounds(const juce::String& text, juce::Point<int> screenPos,
+                                          juce::Rectangle<int> parentArea) override;
 };
 
 // Same theme but with a large glyph font, for the round Reset button.
