@@ -3,6 +3,7 @@
 
 #include "humanizer/LayerSet.h"
 
+#include <algorithm>
 #include <cmath>
 #include <set>
 
@@ -47,6 +48,7 @@ TEST_CASE("Single instrument is one plain layer", "[layerset]")
     REQUIRE_FALSE(layers[0].neutralize);
     REQUIRE(layers[0].seedOffset == 0);
     REQUIRE_THAT(layers[0].gainMul, WithinAbs(1.0f, 1e-6f));
+    REQUIRE_THAT(layers[0].pan, WithinAbs(0.0f, 1e-6f)); // a single instrument stays centred
 }
 
 TEST_CASE("All family layers: central anchor + humanized copies", "[layerset]")
@@ -55,10 +57,12 @@ TEST_CASE("All family layers: central anchor + humanized copies", "[layerset]")
     const auto layers = buildLayerSet({ 10, 19 }, /*isAll=*/true);
     REQUIRE(layers.size() == 2); // central (10) + one humanized copy of the other bank (19)
 
-    // Layer 0: central anchor, neutralized, full weight (the lead of the section).
+    // Layer 0: central anchor, neutralized, trimmed so it blends into the section rather than
+    // leading it, but still louder than the humanized copies.
     REQUIRE(layers[0].bank == 10);
     REQUIRE(layers[0].neutralize);
-    REQUIRE_THAT(layers[0].gainMul, WithinAbs(1.0f, 1e-6f));
+    REQUIRE_THAT(layers[0].gainMul, WithinAbs(kEnsembleCentralGain, 1e-6f));
+    REQUIRE(layers[0].gainMul < 1.0f);
 
     // The remaining layers are humanized copies sitting quieter around the central anchor.
     for (std::size_t i = 1; i < layers.size(); ++i)
@@ -70,6 +74,10 @@ TEST_CASE("All family layers: central anchor + humanized copies", "[layerset]")
 
     // The central bank is NOT duplicated; the other bank is the humanized copy.
     REQUIRE(layers[1].bank == 19);
+
+    // Two layers (central + one copy) split one to each side for real stereo width.
+    REQUIRE_THAT(layers[0].pan, WithinAbs(-kEnsemblePanSpread, 1e-6f));
+    REQUIRE_THAT(layers[1].pan, WithinAbs(+kEnsemblePanSpread, 1e-6f));
 
     // Every humanized layer decorrelates: distinct, non zero seed offsets.
     std::set<int> humSeeds;
@@ -105,4 +113,29 @@ TEST_CASE("Ensemble with six banks yields six layers (central + humanized others
     for (std::size_t i = 1; i < layers.size(); ++i)
         seeds.insert(layers[i].seedOffset);
     REQUIRE(seeds.size() == 5); // all humanized seeds distinct
+}
+
+TEST_CASE("Ensemble spreads the copies across the panorama, central centred", "[layerset]")
+{
+    // Six banks: central centred, five copies spread evenly and symmetrically across the field.
+    const auto layers = buildLayerSet({ 0, 1, 2, 3, 4, 9 }, /*isAll=*/true);
+    REQUIRE(layers.size() == 6);
+
+    REQUIRE_THAT(layers[0].pan, WithinAbs(0.0f, 1e-6f)); // central anchor centred
+
+    // The copies reach both extremes and are symmetric about the centre.
+    float minPan = 1.0f, maxPan = -1.0f, sumPan = 0.0f;
+    for (std::size_t i = 1; i < layers.size(); ++i)
+    {
+        minPan = std::min(minPan, layers[i].pan);
+        maxPan = std::max(maxPan, layers[i].pan);
+        sumPan += layers[i].pan;
+    }
+    REQUIRE_THAT(minPan, WithinAbs(-kEnsemblePanSpread, 1e-6f));
+    REQUIRE_THAT(maxPan, WithinAbs(+kEnsemblePanSpread, 1e-6f));
+    REQUIRE_THAT(sumPan, WithinAbs(0.0f, 1e-6f)); // balanced left/right
+
+    // A single instrument (not an ensemble) is never panned.
+    const auto solo = buildLayerSet({ 7 }, /*isAll=*/false);
+    REQUIRE_THAT(solo[0].pan, WithinAbs(0.0f, 1e-6f));
 }

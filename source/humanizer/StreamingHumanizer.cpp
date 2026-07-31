@@ -91,6 +91,7 @@ void StreamingHumanizer::advance(std::int64_t latestInput, std::vector<VoiceComm
                 st.articulation = (!params_.tremoloOn && e.articulation == Articulation::Tremolo)
                                       ? Articulation::Picked
                                       : e.articulation;
+                st.legato = e.legato;
                 st.startOn = e.sample;
                 st.lastOn = e.sample;
                 st.lastOffSeen = -1;
@@ -98,7 +99,14 @@ void StreamingHumanizer::advance(std::int64_t latestInput, std::vector<VoiceComm
                 st.jitter = variation_->timingJitter(params_, e.sample, key) + variation_->breathing(params_, e.sample);
                 st.variation = variation_->gainVariation(params_, e.sample, key);
                 st.baseDetune = variation_->detune(params_, e.sample, key);
-                emitOn(params_.presetFor(st.articulation), st.pickVoice, key, at(e.sample, st.jitter),
+                // A tremolo onset picks its sample by legato: a slur continuation runs pure Trem
+                // (presetFor(Tremolo)); a standalone tremolo (or the first note of a slur) attacks
+                // with a pick (P+T, tremoloPickedPreset). Every other articulation uses its preset.
+                const int onsetPreset =
+                    (st.articulation == Articulation::Tremolo)
+                        ? (st.legato ? params_.presetFor(Articulation::Tremolo) : params_.tremoloPickedPreset)
+                        : params_.presetFor(st.articulation);
+                emitOn(onsetPreset, st.pickVoice, key, at(e.sample, st.jitter),
                        variation_->applyGain(params_, e.velocity, st.variation),
                        st.baseDetune + static_cast<float>(variation_->pitchDrift(params_, e.sample)));
                 if (st.articulation == Articulation::Tremolo)
@@ -245,17 +253,23 @@ void StreamingHumanizer::advance(std::int64_t latestInput, std::vector<VoiceComm
     }
 }
 
-void StreamingHumanizer::tremoloActivity(bool& keyswitchTremolo, bool& detectorTremolo) const
+void StreamingHumanizer::tremoloActivity(bool& keyswitchTremolo, bool& detectorTremolo,
+                                         bool& keyswitchTremoloLegato) const
 {
     keyswitchTremolo = false;
     detectorTremolo = false;
+    keyswitchTremoloLegato = false;
     for (const auto& kv : state_)
     {
         const KeyState& st = kv.second;
         if (st.phase == Phase::Idle)
             continue;
         if (st.articulation == Articulation::Tremolo)
+        {
             keyswitchTremolo = true;                   // an explicit tremolo note is sounding
+            if (st.legato)
+                keyswitchTremoloLegato = true;         // and it is a slur continuation (Trem, no attack)
+        }
         else if (st.phase == Phase::Tremolo && st.articulation == Articulation::Auto)
             detectorTremolo = true;                    // the detector is sustaining a tremolo
     }

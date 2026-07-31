@@ -22,6 +22,13 @@ namespace {
     const int v = 8192 + static_cast<int>(std::lround(cents / 200.0f * 8192.0f));
     return std::clamp(v, 0, 16383);
 }
+
+// Pan (-1 left .. 0 centre .. +1 right) -> MIDI CC10 (0 hard left, 64 centre, 127 hard right).
+[[maybe_unused]] int panToCC(float pan)
+{
+    const float p = std::clamp(pan, -1.0f, 1.0f);
+    return std::clamp(static_cast<int>(std::lround((p + 1.0f) * 63.5f)), 0, 127);
+}
 } // namespace
 
 SoundFontEngine::SoundFontEngine()
@@ -136,7 +143,7 @@ void SoundFontEngine::freeVoiceChannel(int voiceId)
             v = -1;
 }
 
-void SoundFontEngine::noteOn(int voiceId, int key, int velocity, float gain, int bank, int preset, float detuneCents)
+void SoundFontEngine::noteOn(int voiceId, int key, int velocity, float gain, int bank, int preset, float detuneCents, float pan)
 {
     const int ch = channelForVoice(voiceId);
 #if defined(HVST_HAVE_FLUIDSYNTH)
@@ -146,10 +153,11 @@ void SoundFontEngine::noteOn(int voiceId, int key, int velocity, float gain, int
             fluid_synth_program_select(synth_, ch, sfId_, static_cast<unsigned int>(bank), preset);
         fluid_synth_pitch_bend(synth_, ch, centsToBend(detuneCents));
         fluid_synth_cc(synth_, ch, 11 /* expression */, gainToExpression(gain));
+        fluid_synth_cc(synth_, ch, 10 /* pan */, panToCC(pan));
         fluid_synth_noteon(synth_, ch, key, velocity);
     }
 #else
-    (void) ch; (void) key; (void) velocity; (void) gain; (void) bank; (void) preset; (void) detuneCents;
+    (void) ch; (void) key; (void) velocity; (void) gain; (void) bank; (void) preset; (void) detuneCents; (void) pan;
 #endif
 }
 

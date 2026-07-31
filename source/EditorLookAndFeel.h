@@ -76,6 +76,7 @@ class TremoloLed : public juce::Component
 {
 public:
     juce::Colour colour { 0xffd9a066 };
+    void setColour(juce::Colour c) { if (c != colour) { colour = c; repaint(); } }
     void setLevel(float l) { if (l != level_) { level_ = l; repaint(); } }
     void paint(juce::Graphics&) override;
 private:

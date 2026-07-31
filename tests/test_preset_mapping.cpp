@@ -40,3 +40,21 @@ TEST_CASE("Missing articulations fall back to the picked/base preset", "[presetm
     REQUIRE(presetFor(m, Articulation::Harmonic) == 0);
     REQUIRE(presetFor(m, Articulation::Mute) == 0);
 }
+
+TEST_CASE("Picked tremolo (P+T) preset is found by name, falls back to Trem", "[presetmap]")
+{
+    const std::vector<SoundFontPreset> full = {
+        {0, "B PSaezLin"}, {1, "B PSaezLin Trem"}, {2, "B PSaezLin P+T"},
+    };
+    REQUIRE(pickedTremoloPreset(full) == 2);            // the P+T sample
+
+    // No P+T sample present: fall back to the plain tremolo preset so it stays audible.
+    const std::vector<SoundFontPreset> noPT = {
+        {0, "B PSaezLin"}, {1, "B PSaezLin Trem"},
+    };
+    REQUIRE(pickedTremoloPreset(noPT) == 1);            // falls back to Trem
+
+    // Neither P+T nor Trem: fall back to the base preset.
+    const std::vector<SoundFontPreset> bare = { {0, "B PSaezLin"} };
+    REQUIRE(pickedTremoloPreset(bare) == 0);
+}

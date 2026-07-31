@@ -25,4 +25,9 @@ struct SoundFontPreset
 // falls back to the base/picked preset, so it stays audible instead of selecting a wrong sample.
 std::array<int, kNumArticulations> articulationPresetMap(const std::vector<SoundFontPreset>& bankPresets);
 
+// The "picked tremolo" (P+T) preset: a tremolo body that begins with a pick attack, used for a
+// standalone tremolo or the first note of a slurred group. Falls back to the plain tremolo preset
+// (then the base preset) when the SoundFont has no P+T sample.
+int pickedTremoloPreset(const std::vector<SoundFontPreset>& bankPresets);
+
 } // namespace plectro

@@ -22,7 +22,7 @@ struct KeyswitchDef
     Articulation articulation; // internal articulation this keyswitch selects
 };
 
-inline constexpr std::array<KeyswitchDef, 12> kKeyswitchLayout = { {
+inline constexpr std::array<KeyswitchDef, 13> kKeyswitchLayout = { {
     { 0, "Standard", Articulation::Picked },
     // Pizzicato family: distinct keyswitches, all rendered with the one pizzicato sound.
     { 1, "Pizzicato", Articulation::Pizzicato },
@@ -40,6 +40,10 @@ inline constexpr std::array<KeyswitchDef, 12> kKeyswitchLayout = { {
     // Trill: rendered as a single sustained tremolo on the main note (the processor drops the
     // alternating upper note), so it uses the same tremolo sound.
     { 11, "Trill", Articulation::Tremolo },
+    // Legato (slur / hammer-on-pull-off) is a MODIFIER, not a timbre: the processor intercepts this
+    // note to arm a per-channel legato latch and does NOT change the articulation. The articulation
+    // field is a harmless placeholder; the note is never decoded via articulationForKeyswitchNote.
+    { 12, "Legato", Articulation::Picked },
 } };
 
 // Decode a keyswitch-zone MIDI note to the articulation it selects. A note outside the layout
@@ -59,6 +63,16 @@ inline bool keyswitchNoteIsTrill(int note)
     for (const auto& k : kKeyswitchLayout)
         if (k.note == note)
             return std::string_view(k.name) == "Trill";
+    return false;
+}
+
+// Whether the keyswitch at this note is the Legato modifier. The processor uses it to arm the
+// per-channel legato latch (Trem vs P+T for tremolo), independently of the articulation latch.
+inline bool keyswitchNoteIsLegato(int note)
+{
+    for (const auto& k : kKeyswitchLayout)
+        if (k.note == note)
+            return std::string_view(k.name) == "Legato";
     return false;
 }
 

@@ -163,7 +163,7 @@ TEST_CASE("Explicit tremolo keyswitch sustains one tremolo voice for repeated no
     REQUIRE(countType(out, VoiceCommandType::NoteOff) == 1);
     for (const auto& c : out)
         if (c.type == VoiceCommandType::NoteOn)
-            REQUIRE(c.preset == 1);                           // tremolo preset, sustained
+            REQUIRE(c.preset == 2);                           // P+T: a standalone tremolo attacks with a pick
     REQUIRE(countType(out, VoiceCommandType::SetGain) >= 4);  // sustained, follows the strokes
 }
 
@@ -192,8 +192,31 @@ TEST_CASE("Explicit tremolo sustains one voice even when strokes are wider than 
     REQUIRE(countType(out, VoiceCommandType::NoteOff) == 1);
     for (const auto& c : out)
         if (c.type == VoiceCommandType::NoteOn)
-            REQUIRE(c.preset == 1);                            // tremolo preset, sustained
+            REQUIRE(c.preset == 2);                            // P+T: a standalone tremolo attacks with a pick
     REQUIRE(countType(out, VoiceCommandType::SetGain) >= 4);   // strokes follow the dynamic
+}
+
+TEST_CASE("Explicit tremolo picks P+T when standalone and Trem when legato", "[streaming][articulation]")
+{
+    auto firstTremPreset = [](bool legato) {
+        StreamingHumanizer s;
+        HumanizerParams p;                 // presetByArticulation defaults: Tremolo -> 1 (Trem)
+        p.tremoloPickedPreset = 2;         // P+T
+        s.setParams(p);
+        NoteEvent on{}; on.sample = 1000; on.key = 67; on.velocity = 90;
+        on.isNoteOn = true; on.channel = 1; on.articulation = Articulation::Tremolo;
+        on.legato = legato;
+        s.push(on);
+        std::vector<VoiceCommand> out;
+        s.advance(1000 + 4096, out);
+        for (const auto& c : out)
+            if (c.type == VoiceCommandType::NoteOn)
+                return c.preset;           // the tremolo onset preset
+        return -1;
+    };
+
+    REQUIRE(firstTremPreset(false) == 2);  // standalone tremolo -> P+T
+    REQUIRE(firstTremPreset(true)  == 1);  // legato continuation -> Trem
 }
 
 TEST_CASE("Auto articulation still promotes repeated notes to a tremolo voice", "[streaming][articulation]")
@@ -270,7 +293,7 @@ TEST_CASE("A keyswitch retrigger between two tremolo spans yields two separate t
 
     int tremOns = 0;
     for (const auto& c : out)
-        if (c.type == VoiceCommandType::NoteOn && c.preset == 1)
+        if (c.type == VoiceCommandType::NoteOn && c.preset == 2) // P+T: standalone tremolo attacks
             ++tremOns;
     REQUIRE(tremOns == 2); // two independent tremolo spans, not one merged sustain
 }

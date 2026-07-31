@@ -84,6 +84,7 @@ public:
     // Live tremolo activity for the editor's indicator LEDs (audio thread -> UI thread).
     bool isKeyswitchTremoloActive() const { return keyswitchTremoloActive_.load(std::memory_order_relaxed); }
     bool isDetectorTremoloActive() const { return detectorTremoloActive_.load(std::memory_order_relaxed); }
+    bool isKeyswitchTremoloLegato() const { return keyswitchTremoloLegato_.load(std::memory_order_relaxed); }
 
     // Output peak level (0..1) for the VU meter, and the last played note-on velocity (1..127)
     // for the compression-direction indicator.
@@ -120,7 +121,8 @@ private:
         int bank = 0;
         bool neutralize = false; // central anchor: force per note humanization off
         int seedOffset = 0;      // decorrelates this layer from the others
-        float gainMul = 1.0f;    // per layer relative gain (central anchor ~ -1 dB)
+        float gainMul = 1.0f;    // per layer relative gain (central anchor trimmed ~-3 dB)
+        float pan = 0.0f;        // stereo placement -1 left .. 0 centre .. +1 right
     };
     static constexpr int kMaxLayers = 12;          // largest family (10 banks) + 1 central + slack
     static constexpr int kVoiceStride = 1 << 22;   // per layer voice id offset, so voices stay distinct
@@ -135,6 +137,11 @@ private:
 
     juce::String sf2Path_;
 
+    // Once a project restores its state, the instrument selection is owned by the project and the
+    // host's track-name auto-mapping (updateTrackProperties) must not overwrite it on reload. Stays
+    // false for a fresh instance, so dropping the plugin on a named track still auto-selects.
+    bool instrumentPinned_ = false;
+
     double sampleRate_ = 44100.0;
     std::int64_t lookaheadSamples_ = 0;
     std::int64_t hostSample_ = 0;              // absolute input position at the start of the block
@@ -144,6 +151,7 @@ private:
 
     std::atomic<bool> keyswitchTremoloActive_{ false }; // a keyswitch (explicit) tremolo is sounding
     std::atomic<bool> detectorTremoloActive_{ false };  // the rhythmic detector is sustaining a tremolo
+    std::atomic<bool> keyswitchTremoloLegato_{ false }; // the sounding keyswitch tremolo is a slur continuation
     std::atomic<float> outputLevel_{ 0.0f };            // output peak (0..1) for the VU meter
     std::atomic<int> lastInputVelocity_{ 64 };          // last played note-on velocity
 
@@ -154,6 +162,8 @@ private:
     // Current articulation per MIDI channel (1..16; index 0 unused), set by keyswitch notes
     // and held until the next keyswitch. Stamped onto every playable note as it is ingested.
     std::array<Articulation, 17> articulationLatch_{}; // value-initialised to Articulation::Auto
+    std::array<bool, 17> legatoActive_{};  // per-channel legato span state (keyswitch on..off)
+    std::array<bool, 17> legatoNoteSeen_{}; // a note has sounded in the active legato span (per channel)
 
     // Trill: rendered as a single sustained tremolo on the main note. A trill keyswitch marks the
     // channel; the first trill note is the main pitch (kept, played as tremolo), and the trill's
@@ -165,6 +175,7 @@ private:
     // rebuildPresetMap) rather than hard-coded indices, so routing follows the SF2 layout.
     // Written on the message thread at load, read on the audio thread in readParams.
     std::array<std::atomic<int>, kNumArticulations> presetMap_{};
+    std::atomic<int> tremoloPickedPreset_{ 2 }; // P+T preset (standalone tremolo); mirrors presetMap_
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PlectroProcessor)
 };

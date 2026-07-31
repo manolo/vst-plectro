@@ -27,15 +27,17 @@ void plectroLogf(const char* fmt, long long a, int b, int c, int d)
 namespace plectro {
 
 namespace {
-// Rebase a layer's voice commands so they never collide with another layer's voices, and fold in
-// the layer's relative gain. voiceId offset keeps the engine treating each layer independently.
-void applyLayerOffsetGain(std::vector<VoiceCommand>& cmds, int layerIndex, float gainMul, int stride)
+// Rebase a layer's voice commands so they never collide with another layer's voices, fold in the
+// layer's relative gain, and stamp its stereo placement. voiceId offset keeps the engine treating
+// each layer independently.
+void applyLayerOffsetGain(std::vector<VoiceCommand>& cmds, int layerIndex, float gainMul, float pan, int stride)
 {
     const int off = layerIndex * stride;
     for (auto& c : cmds)
     {
         c.voiceId += off;
         c.gain *= gainMul;
+        c.pan = pan;
     }
 }
 } // namespace
@@ -90,6 +92,7 @@ HumanizerParams PlectroProcessor::readParams() const
     // follows the SoundFont layout instead of fixed indices that can point at the wrong sample.
     for (int i = 0; i < kNumArticulations; ++i)
         p.presetByArticulation[i] = presetMap_[i].load(std::memory_order_relaxed);
+    p.tremoloPickedPreset = tremoloPickedPreset_.load(std::memory_order_relaxed);
     p.globalSeed = static_cast<std::uint64_t>(apvts_.getRawParameterValue(pid::globalSeed)->load());
     p.instanceSeed = static_cast<std::uint64_t>(apvts_.getRawParameterValue(pid::instanceSeed)->load());
     p.lookaheadSamples = lookaheadSamples_;
@@ -120,6 +123,7 @@ void PlectroProcessor::prepareToPlay(double sampleRate, int)
     activeLayers_ = 1;
     lastSelection_ = INT_MIN; // force the first block to configure the layers from the selection
     articulationLatch_.fill(Articulation::Auto);
+    legatoActive_.fill(false);
     trillActive_.fill(false);
     trillMainKey_.fill(-1);
     keyswitchSeen_.store(false, std::memory_order_relaxed);
@@ -135,6 +139,7 @@ void PlectroProcessor::releaseResources()
     for (auto& L : layers_)
         L.stream.reset();
     articulationLatch_.fill(Articulation::Auto);
+    legatoActive_.fill(false);
     trillActive_.fill(false);
     trillMainKey_.fill(-1);
     keyswitchSeen_.store(false, std::memory_order_relaxed);
@@ -168,7 +173,21 @@ void PlectroProcessor::ingestMidi(const juce::MidiBuffer& midi)
         
         const std::int64_t at = hostSample_ + meta.samplePosition;
         const int chan = juce::jlimit(1, 16, msg.getChannel());
-        
+
+        // Legato is a ranged modifier the host presses at every note it covers (so starting playback
+        // partway through a slur still engages it) and releases at the range end (a note-off, handled
+        // in PASS 2). It does not change the articulation latch. Only a fresh span (the latch was off)
+        // clears legatoNoteSeen_, so the first note under the slur is not yet a continuation while a
+        // re-press within the same span leaves the continuation state intact.
+        if (keyswitchNoteIsLegato(note - pid::kKeyswitchBase))
+        {
+            keyswitchSeen_.store(true, std::memory_order_relaxed);
+            if (!legatoActive_[chan])
+                legatoNoteSeen_[chan] = false;
+            legatoActive_[chan] = true;
+            continue;
+        }
+
         keyswitchSeen_.store(true, std::memory_order_relaxed);
         const Articulation oldArt = articulationLatch_[chan];
         const bool isTrill = keyswitchNoteIsTrill(note - pid::kKeyswitchBase);
@@ -217,18 +236,32 @@ void PlectroProcessor::ingestMidi(const juce::MidiBuffer& midi)
                     continue;                     // drop the alternating upper note
             }
             lastInputVelocity_.store(msg.getVelocity(), std::memory_order_relaxed);
-            pushToLayers({at, note, msg.getVelocity(), true, chan, articulationLatch_[chan]});
+            // A note is a legato continuation only once a note has already sounded in the active
+            // span, so the first note under the slur still attacks and later ones connect. Gated to
+            // editions with legato tremolo (free always plays P+T, ignoring the slur).
+            const bool legatoContinuation =
+                kEdition.legatoTremolo && legatoActive_[chan] && legatoNoteSeen_[chan];
+            pushToLayers({at, note, msg.getVelocity(), true, chan, articulationLatch_[chan], legatoContinuation});
+            if (legatoActive_[chan])
+                legatoNoteSeen_[chan] = true;
         }
         else if (msg.isNoteOff())
         {
             const int note = msg.getNoteNumber();
+            // The legato span ends with the keyswitch note-off; clear the modifier for this channel.
+            if (keyswitchNoteIsLegato(note - pid::kKeyswitchBase))
+            {
+                legatoActive_[chan] = false;
+                legatoNoteSeen_[chan] = false;
+                continue;
+            }
             if (note >= pid::kKeyswitchBase && note <= pid::kKeyswitchZoneTop)
                 continue;
-            
+
             if (trillActive_[chan] && trillMainKey_[chan] >= 0 && note != trillMainKey_[chan])
                 continue; // drop the note-off of the dropped upper note
 
-            pushToLayers({at, note, 0, false, chan, articulationLatch_[chan]});
+            pushToLayers({at, note, 0, false, chan, articulationLatch_[chan], false});
         }
     }
 }
@@ -249,7 +282,7 @@ void PlectroProcessor::renderScheduled(juce::AudioBuffer<float>& buffer)
             const auto& c = scheduled_[schedPos_];
             switch (c.type)
             {
-                case VoiceCommandType::NoteOn:  engine_.noteOn(c.voiceId, c.key, c.velocity, c.gain, c.bank, c.preset, c.detuneCents); break;
+                case VoiceCommandType::NoteOn:  engine_.noteOn(c.voiceId, c.key, c.velocity, c.gain, c.bank, c.preset, c.detuneCents, c.pan); break;
                 case VoiceCommandType::SetGain: engine_.setGain(c.voiceId, c.gain); break;
                 case VoiceCommandType::SetPitch: engine_.setPitch(c.voiceId, c.detuneCents); break;
                 case VoiceCommandType::NoteOff: engine_.noteOff(c.voiceId, c.key); break;
@@ -298,6 +331,8 @@ void PlectroProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     {
         keyswitchSeen_.store(false, std::memory_order_relaxed);
         articulationLatch_.fill(Articulation::Auto);
+        legatoActive_.fill(false);
+        legatoNoteSeen_.fill(false);
         lastInputVelocity_.store(64, std::memory_order_relaxed); // recentre the compression indicator
     }
     wasPlaying_ = isPlaying;
@@ -336,12 +371,15 @@ void PlectroProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
 
     // Output off bypasses the output stage (unity gain). The ensemble is attenuated by 1/sqrt(N)
     // so N decorrelated layers stay close to a single instrument's loudness (N=1 leaves it unity).
+    // The trimmed anchor plus the decorrelated (and now panned) copies still land softer than a
+    // single instrument, so an ensemble gets a fixed +6 dB make-up to match the solo loudness.
     const bool outputOn = apvts_.getRawParameterValue(pid::outputOn)->load() > 0.5f;
     const float base = outputOn
                        ? juce::Decibels::decibelsToGain(apvts_.getRawParameterValue(pid::masterGain)->load())
                        : 1.0f;
     const float atten = 1.0f / std::sqrt(static_cast<float>(std::max(1, activeLayers_)));
-    engine_.setMasterGain(base * atten);
+    const float makeup = activeLayers_ > 1 ? juce::Decibels::decibelsToGain(6.0f) : 1.0f;
+    engine_.setMasterGain(base * atten * makeup);
 
     ingestMidi(midi);
     midi.clear(); // instrument consumes MIDI, emits none
@@ -352,21 +390,23 @@ void PlectroProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     {
         std::vector<VoiceCommand> lc;
         layers_[static_cast<std::size_t>(i)].stream.advance(latestInput, lc);
-        applyLayerOffsetGain(lc, i, layers_[static_cast<std::size_t>(i)].gainMul, kVoiceStride);
+        applyLayerOffsetGain(lc, i, layers_[static_cast<std::size_t>(i)].gainMul, layers_[static_cast<std::size_t>(i)].pan, kVoiceStride);
         fresh.insert(fresh.end(), lc.begin(), lc.end());
     }
 
     // Publish tremolo activity for the editor's indicator LEDs (OR across the layers).
-    bool ksActive = false, detActive = false;
+    bool ksActive = false, detActive = false, ksLegato = false;
     for (int i = 0; i < activeLayers_; ++i)
     {
-        bool k = false, d = false;
-        layers_[static_cast<std::size_t>(i)].stream.tremoloActivity(k, d);
+        bool k = false, d = false, kl = false;
+        layers_[static_cast<std::size_t>(i)].stream.tremoloActivity(k, d, kl);
         ksActive = ksActive || k;
         detActive = detActive || d;
+        ksLegato = ksLegato || kl;
     }
     keyswitchTremoloActive_.store(ksActive, std::memory_order_relaxed);
     detectorTremoloActive_.store(detActive, std::memory_order_relaxed);
+    keyswitchTremoloLegato_.store(ksLegato, std::memory_order_relaxed);
 #if defined(HVST_DEBUG_LOG)
     for (const auto& c : fresh)
     {
@@ -417,6 +457,11 @@ static int bankForInstrumentName(const juce::String& rawName)
 void PlectroProcessor::updateTrackProperties(const TrackProperties& properties)
 {
     hostTrackName_ = properties.name; // keep it for the editor, even if it does not map to a bank
+
+    // A restored project owns the instrument choice: the host re-sends the track name on reload, so
+    // auto-mapping here would clobber the selection that setStateInformation just restored.
+    if (instrumentPinned_)
+        return;
 
     const int bank = bankForInstrumentName(properties.name);
     if (bank < 0)
@@ -497,7 +542,7 @@ void PlectroProcessor::closeLayersOnBoundary(std::int64_t atSample)
     {
         std::vector<VoiceCommand> tmp;
         layers_[static_cast<std::size_t>(i)].stream.forceCloseAll(atSample, tmp);
-        applyLayerOffsetGain(tmp, i, layers_[static_cast<std::size_t>(i)].gainMul, kVoiceStride);
+        applyLayerOffsetGain(tmp, i, layers_[static_cast<std::size_t>(i)].gainMul, layers_[static_cast<std::size_t>(i)].pan, kVoiceStride);
         offs.insert(offs.end(), tmp.begin(), tmp.end());
     }
     if (!offs.empty())
@@ -515,7 +560,7 @@ void PlectroProcessor::reconfigureLayers(int selection, std::int64_t atSample, s
     {
         std::vector<VoiceCommand> tmp;
         layers_[static_cast<std::size_t>(i)].stream.forceCloseAll(atSample, tmp);
-        applyLayerOffsetGain(tmp, i, layers_[static_cast<std::size_t>(i)].gainMul, kVoiceStride);
+        applyLayerOffsetGain(tmp, i, layers_[static_cast<std::size_t>(i)].gainMul, layers_[static_cast<std::size_t>(i)].pan, kVoiceStride);
         offs.insert(offs.end(), tmp.begin(), tmp.end());
     }
 
@@ -550,6 +595,7 @@ void PlectroProcessor::reconfigureLayers(int selection, std::int64_t atSample, s
         layers_[static_cast<std::size_t>(i)].neutralize = s.neutralize;
         layers_[static_cast<std::size_t>(i)].seedOffset = s.seedOffset;
         layers_[static_cast<std::size_t>(i)].gainMul = s.gainMul;
+        layers_[static_cast<std::size_t>(i)].pan = s.pan;
     }
 }
 
@@ -572,6 +618,7 @@ void PlectroProcessor::rebuildPresetMap()
     const auto map = articulationPresetMap(bank);
     for (int i = 0; i < kNumArticulations; ++i)
         presetMap_[i].store(map[i], std::memory_order_relaxed);
+    tremoloPickedPreset_.store(pickedTremoloPreset(bank), std::memory_order_relaxed);
 }
 
 void PlectroProcessor::getStateInformation(juce::MemoryBlock& destData)
@@ -598,6 +645,9 @@ void PlectroProcessor::setStateInformation(const void* data, int sizeInBytes)
                     sf2Path_ = bundledSoundFontPath();
             }
             apvts_.replaceState(tree);
+            // The restored state carries the project's instrument choice; pin it so the host's
+            // track-name auto-mapping cannot overwrite it when the track properties are re-sent.
+            instrumentPinned_ = true;
         }
     }
 }

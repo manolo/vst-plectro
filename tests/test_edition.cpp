@@ -12,5 +12,6 @@ TEST_CASE("free edition is the default build")
     REQUIRE(std::string_view(kEdition.productName) == "Plectro");
     REQUIRE(kEdition.humanization == false);
     REQUIRE(kEdition.allowCustomSf2 == false);
+    REQUIRE(kEdition.legatoTremolo == false); // slur-aware tremolo is Pro only
     REQUIRE(std::string_view(kEdition.bundledSf2) == "Plectro.sf2");
 }

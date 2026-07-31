@@ -59,4 +59,14 @@ std::array<int, kNumArticulations> articulationPresetMap(const std::vector<Sound
     return map;
 }
 
+int pickedTremoloPreset(const std::vector<SoundFontPreset>& bank)
+{
+    for (const auto& p : bank)
+        if (nameHas(p.name, "p+t"))
+            return p.preset;
+    // No P+T sample: fall back to the plain tremolo preset (which itself falls back to the base
+    // preset in articulationPresetMap), so a font without P+T still sounds.
+    return articulationPresetMap(bank)[static_cast<int>(Articulation::Tremolo)];
+}
+
 } // namespace plectro

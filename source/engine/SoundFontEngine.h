@@ -48,7 +48,8 @@ public:
     // independent synth channel and therefore an independent expression (dynamics) value.
     // The bank + preset select the articulation (picked vs tremolo) on that channel.
     // detuneCents applies a pitch offset (fret imperfection / ensemble detune) via pitch bend.
-    void noteOn(int voiceId, int key, int velocity, float gain, int bank, int preset, float detuneCents);
+    // pan places the voice in the stereo field (-1 left .. 0 centre .. +1 right) via CC10.
+    void noteOn(int voiceId, int key, int velocity, float gain, int bank, int preset, float detuneCents, float pan);
     void setGain(int voiceId, float gain);
     void setPitch(int voiceId, float detuneCents);
     void noteOff(int voiceId, int key);

@@ -30,6 +30,12 @@ FreeEditor::FreeEditor(PlectroProcessor& p)
     channelInfoLabel_.setJustificationType(juce::Justification::centredLeft);
     addAndMakeVisible(channelInfoLabel_);
 
+    footerLabel_.setText(editorFooterText(), juce::dontSendNotification);
+    footerLabel_.setFont(juce::Font(juce::FontOptions(10.0f)));
+    footerLabel_.setColour(juce::Label::textColourId, dim);
+    footerLabel_.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(footerLabel_);
+
     instrumentBox_.onChange = [this] { instrumentChanged(); };
     addAndMakeVisible(instrumentBox_);
 
@@ -172,15 +178,25 @@ void FreeEditor::resized()
 {
     auto area = getLocalBounds().reduced(14);
 
-    channelInfoLabel_.setBounds(area.removeFromTop(14));
-    area.removeFromTop(2);
+    // Copyright and version, pinned to the very bottom.
+    footerLabel_.setBounds(area.removeFromBottom(16));
+    area.removeFromBottom(4);
 
+    // Header at the very top: title, instrument selector, reset far right.
     auto header = area.removeFromTop(34);
     resetButton_.setBounds(header.removeFromRight(36).withSizeKeepingCentre(36, 32));
     header.removeFromRight(8);
     titleLabel_.setBounds(header.removeFromLeft(150));
     header.removeFromLeft(6);
     instrumentBox_.setBounds(header.withSizeKeepingCentre(header.getWidth(), 26));
+
+    // Channel/track name the host passed, just under the title; removed entirely when there is none.
+    if (channelInfoLabel_.getText().isNotEmpty())
+    {
+        area.removeFromTop(2);
+        channelInfoLabel_.setBounds(area.removeFromTop(14));
+    }
+    area.removeFromTop(2);
 
     auto place = [](juce::Rectangle<int> cell, juce::Slider& s, juce::Label& l) {
         cell.reduce(4, 4);
@@ -271,8 +287,11 @@ void FreeEditor::timerCallback()
 
     const juce::String ch = processor_.hostTrackName();
     if (ch != lastChannelName_) {
+        const bool hadChannel = lastChannelName_.isNotEmpty();
         lastChannelName_ = ch;
         channelInfoLabel_.setText(ch.isEmpty() ? juce::String() : "Channel: " + ch, juce::dontSendNotification);
+        if (ch.isNotEmpty() != hadChannel)
+            resized(); // the channel line appears or disappears: re-lay out so no empty gap remains
     }
 }
 

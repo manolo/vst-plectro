@@ -23,4 +23,9 @@ void populateInstrumentBox(juce::ComboBox& box, const std::vector<SoundFontEngin
 // reads as BANDURRIA, like a single bandurria).
 juce::String instrumentNameForBank(int bank);
 
+// Plugin version shown in the editor footer. Fixed for now; a later build step may compute it.
+inline constexpr const char* kPluginVersion = "0.1.0";
+// The one-line footer at the bottom of both editors: copyright and version.
+juce::String editorFooterText();
+
 } // namespace plectro

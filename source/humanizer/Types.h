@@ -30,6 +30,7 @@ struct NoteEvent
     bool isNoteOn = false;
     int channel = 1;         // MIDI channel 1..16 (kept for per-channel articulation latch)
     Articulation articulation = Articulation::Auto; // stamped from the latch on note-on
+    bool legato = false;     // this note continues a slur (a tremolo continuation renders as Trem)
 };
 
 // The result of tremolo detection: a musical note with a decided articulation. A tremolo
@@ -73,6 +74,7 @@ struct VoiceCommand
     int bank = 0;       // SF2 bank for the articulation (NoteOn)
     float gain = 1.0f;  // linear dynamics 0..1 (NoteOn / SetGain)
     float detuneCents = 0.0f; // pitch offset in cents (NoteOn / SetPitch)
+    float pan = 0.0f;   // stereo placement -1 left .. 0 centre .. +1 right (NoteOn)
 };
 
 // All humanization parameters. Populated from the plugin's APVTS each block.
@@ -110,6 +112,9 @@ struct HumanizerParams
     // and Picked share the picked preset. Velocity/CC carry dynamics.
     int bank = 0;
     int presetByArticulation[kNumArticulations] = { 0, 0, 1, 2, 3, 4 };
+    // A standalone tremolo (or the first note of a slurred group) uses this "picked tremolo" (P+T)
+    // preset for its attack; a legato continuation uses presetByArticulation[Tremolo] (pure Trem).
+    int tremoloPickedPreset = 2;
     int engineVelocity = 127;     // fixed trigger velocity for full sample amplitude
 
     int presetFor(Articulation a) const { return presetByArticulation[static_cast<int>(a)]; }

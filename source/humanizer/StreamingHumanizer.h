@@ -35,7 +35,7 @@ public:
 
     // Current tremolo activity, for the editor's indicator LEDs: whether an explicit (keyswitch)
     // tremolo is sounding and whether the rhythmic detector is sustaining a tremolo.
-    void tremoloActivity(bool& keyswitchTremolo, bool& detectorTremolo) const;
+    void tremoloActivity(bool& keyswitchTremolo, bool& detectorTremolo, bool& keyswitchTremoloLegato) const;
 
 private:
     enum class Phase { Idle, Pick, Tremolo };
@@ -44,6 +44,7 @@ private:
     {
         Phase phase = Phase::Idle;
         Articulation articulation = Articulation::Auto; // decided at the first onset of the note
+        bool legato = false;    // captured at the span start; selects Trem (true) vs P+T (false)
         int pickVoice = 0;      // the immediate picked attack
         int tremVoice = 0;      // the sustained tremolo, started on the second stroke
         std::int64_t lastOn = 0;

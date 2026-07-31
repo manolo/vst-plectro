@@ -45,6 +45,12 @@ void populateInstrumentBox(juce::ComboBox& box, const std::vector<SoundFontEngin
     }
 }
 
+juce::String editorFooterText()
+{
+    // "(c) 2026 - Manolo Carrasco (do2tis) - v0.1.0" (the leading glyph is the copyright sign).
+    return juce::String::fromUTF8("\xc2\xa9 2026 - Manolo Carrasco (do2tis) - v") + kPluginVersion;
+}
+
 juce::String instrumentNameForBank(int bank)
 {
     if (bank == kAllBandurria || (bank >= 0 && bank <= 9))   return "Bandurria";

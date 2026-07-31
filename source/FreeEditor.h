@@ -34,6 +34,7 @@ private:
     KnobVintage lnfVintage_;
 
     juce::Label titleLabel_, channelInfoLabel_;
+    juce::Label footerLabel_;            // bottom line: copyright and version
     int lastShownBank_ = -1;
     juce::String lastChannelName_;
 

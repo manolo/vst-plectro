@@ -67,7 +67,7 @@ inline constexpr auto mutePreset = "mute_preset";
 // keyswitch). The bottom octave (MIDI 0..11, C-1..B-1) is reserved: no plucked-string
 // instrument plays that low, and it matches MuseScore's own reserved keyswitch zone (idx<12).
 inline constexpr int kKeyswitchBase = 0;      // C-1 = Picked (normal)
-inline constexpr int kKeyswitchZoneTop = 11;  // B-1
+inline constexpr int kKeyswitchZoneTop = 12;  // C0: Legato modifier is the top of the reserved zone
 
 // Decode a keyswitch note to its articulation, from the shared keyswitch layout (single source of
 // truth with the IKeyswitchController advertiser). An unmapped keyswitch resets to normal.
@@ -112,7 +112,7 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         ParameterID{captureTrills, 1}, "Capture Trills", true));
 
     layout.add(std::make_unique<AudioParameterFloat>(
-        ParameterID{jitterMs, 1}, "Timing Jitter", NormalisableRange<float>(0.0f, 40.0f), 15.0f, fmt(1, " ms")));
+        ParameterID{jitterMs, 1}, "Timing Jitter", NormalisableRange<float>(0.0f, 40.0f), 17.0f, fmt(1, " ms")));
     layout.add(std::make_unique<AudioParameterFloat>(
         ParameterID{breathingDepthMs, 1}, "Breathing Depth", NormalisableRange<float>(0.0f, 60.0f), 0.0f, fmt(1, " ms")));
     layout.add(std::make_unique<AudioParameterFloat>(
@@ -134,7 +134,7 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     layout.add(std::make_unique<AudioParameterFloat>(
         ParameterID{noteOverlapMs, 1}, "Note Overlap", NormalisableRange<float>(0.0f, 150.0f), 60.0f, fmt(0, " ms")));
     layout.add(std::make_unique<AudioParameterFloat>(
-        ParameterID{detuneCents, 1}, "Detune", NormalisableRange<float>(0.0f, 15.0f), 2.0f, fmt(1, " cents")));
+        ParameterID{detuneCents, 1}, "Detune", NormalisableRange<float>(0.0f, 15.0f), 4.0f, fmt(1, " cents")));
 
     layout.add(std::make_unique<AudioParameterInt>(
         ParameterID{instrumentBank, 1}, "Instrument", 0, 128, PLECTRO_DEFAULT_BANK));
