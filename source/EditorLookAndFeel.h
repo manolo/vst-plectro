@@ -35,6 +35,18 @@ public:
     }
 };
 
+// A small round button with a tiny glyph, used for the "clear the custom font" cross.
+class RoundButtonLookAndFeel : public HumanLookAndFeel
+{
+public:
+    void drawButtonBackground(juce::Graphics&, juce::Button&, const juce::Colour&,
+                              bool isOver, bool isDown) override;
+    juce::Font getTextButtonFont(juce::TextButton&, int) override
+    {
+        return juce::Font(juce::FontOptions(10.0f));
+    }
+};
+
 // Three retro knob looks, applied to different rows so they can be compared side by side.
 class KnobVintage : public HumanLookAndFeel   // dark cap + pointer line + surrounding ticks
 {

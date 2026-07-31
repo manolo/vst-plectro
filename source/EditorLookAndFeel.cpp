@@ -46,6 +46,17 @@ void HumanLookAndFeel::drawTooltip(juce::Graphics& g, const juce::String& tip, i
     g.drawFittedText(tip, 8, 5, width - 16, height - 10, juce::Justification::topLeft, 10);
 }
 
+void RoundButtonLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b, const juce::Colour&,
+                                                  bool isOver, bool isDown)
+{
+    auto r = b.getLocalBounds().toFloat().reduced(1.0f);
+    const juce::Colour c = isDown ? panel.brighter(0.25f) : isOver ? panel.brighter(0.12f) : panel;
+    g.setColour(c);
+    g.fillEllipse(r);
+    g.setColour(dim);
+    g.drawEllipse(r, 1.0f);
+}
+
 namespace {
 struct KnobGeom
 {
