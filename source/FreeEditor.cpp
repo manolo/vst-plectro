@@ -12,20 +12,8 @@ using palette::dim;
 using palette::panel;
 using palette::section;
 using palette::text;
-
-// The instrument shown as the editor title, from the SF2 bank family. All families and out of
-// range banks fall back to the product name.
-juce::String instrumentNameForBank(int bank)
-{
-    if (bank == kAllBandurria) return "All Bands";
-    if (bank == kAllLaud)      return "All Laudes";
-    if (bank == kAllMandolina) return "All Mandolins";
-    if (bank >= 0 && bank <= 9)   return "Bandurria";
-    if (bank >= 10 && bank <= 19) return juce::String::fromUTF8("La\xc3\xba" "d");
-    if (bank >= 20 && bank <= 29) return "Mandolina";
-    return juce::String::fromUTF8("Pulso y P\xc3\xba" "a");
-}
 } // namespace
+// instrumentNameForBank + populateInstrumentBox are shared, see EditorSupport.
 
 FreeEditor::FreeEditor(PlectroProcessor& p)
     : juce::AudioProcessorEditor(p), processor_(p)
@@ -127,28 +115,7 @@ juce::Slider& FreeEditor::makeRotary(juce::Slider& s, juce::Label& l, const juce
 
 void FreeEditor::rebuildInstrumentList()
 {
-    instrumentBox_.clear(juce::dontSendNotification);
-    const auto presets = processor_.listPresets();
-    bool hasBand = false, hasLaud = false, hasMand = false;
-    for (const auto& pr : presets)
-    {
-        if (pr.preset != 0)
-            continue;
-        const char* family = (pr.bank <= 9) ? "Band: " : (pr.bank <= 19) ? "Laud: " : (pr.bank <= 29) ? "Mand: " : "";
-        if (pr.bank <= 9)       hasBand = true;
-        else if (pr.bank <= 19) hasLaud = true;
-        else if (pr.bank <= 29) hasMand = true;
-        juce::String name = pr.name;
-        if (name.length() > 2 && name[1] == ' ')
-            name = name.substring(2);
-        instrumentBox_.addItem(juce::String(family) + name, pr.bank + 1); // itemId cannot be 0
-    }
-
-    if (hasBand || hasLaud || hasMand)
-        instrumentBox_.addSeparator();
-    if (hasBand) instrumentBox_.addItem("All Bands", kAllBandurria + 1);
-    if (hasLaud) instrumentBox_.addItem("All Laudes", kAllLaud + 1);
-    if (hasMand) instrumentBox_.addItem("All Mandolins", kAllMandolina + 1);
+    populateInstrumentBox(instrumentBox_, processor_.listPresets());
 
     const int curBank = static_cast<int>(processor_.state().getRawParameterValue(pid::instrumentBank)->load());
     if (instrumentBox_.getNumItems() > 0)

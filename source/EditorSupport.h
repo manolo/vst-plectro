@@ -5,10 +5,22 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 
+#include "engine/SoundFontEngine.h"
+
+#include <vector>
+
 namespace plectro {
 
 class PlectroProcessor;
 
 juce::AudioProcessorEditor* makeEditor(PlectroProcessor& processor);
+
+// Shared instrument picker helpers (used by both editors).
+// Populate the combo from the loaded SF2 presets: each family's instruments ("Band: <name>", ...)
+// followed by that family's "Band: All" ensemble entry, grouped and separated per family.
+void populateInstrumentBox(juce::ComboBox& box, const std::vector<SoundFontEngine::PresetInfo>& presets);
+// The editor title for an instrument bank or an All-family sentinel: the family name (so "Band: All"
+// reads as BANDURRIA, like a single bandurria).
+juce::String instrumentNameForBank(int bank);
 
 } // namespace plectro

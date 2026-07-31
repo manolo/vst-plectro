@@ -100,6 +100,7 @@ if(HVST_BUILD_PLUGIN)
         target_sources(${target} PRIVATE
             source/PluginProcessor.cpp
             source/EditorLookAndFeel.cpp
+            source/EditorSupport.cpp
             source/engine/SoundFontEngine.cpp)
         # The humanization math and the full editor are selected at build time, no preprocessor: the
         # Pro edition compiles the algorithms and the humanization editor from source/pro/, the free
