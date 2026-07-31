@@ -111,9 +111,7 @@ void PlectroProcessor::prepareToPlay(double sampleRate, int)
     setLatencySamples(static_cast<int>(lookaheadSamples_));
 
     engine_.prepare(sampleRate);
-    engine_.loadSoundFont(sf2Path_.toStdString());
-    rebuildPresetMap();
-    rebuildFamilyBanks();
+    reloadSoundFont();
 
     if (static_cast<int>(layers_.size()) != kMaxLayers)
         layers_.resize(kMaxLayers);
@@ -444,10 +442,24 @@ void PlectroProcessor::setSoundFontPath(const juce::String& path)
 {
     sf2Path_ = path;
     engine_.prepare(sampleRate_);
+    reloadSoundFont();
+    lastSelection_ = INT_MIN; // the layers reference banks from the new SF2: reconfigure next block
+}
+
+void PlectroProcessor::useBundledSoundFont()
+{
+    setSoundFontPath(bundledSoundFontPath());
+}
+
+void PlectroProcessor::reloadSoundFont()
+{
+    // A stale saved path (a renamed or moved asset, an SF2 from another machine) must not leave the
+    // instrument silent: fall back to the bundled font. sf2Path_ ends up as whatever actually loaded.
+    if (! juce::File(sf2Path_).existsAsFile())
+        sf2Path_ = bundledSoundFontPath();
     engine_.loadSoundFont(sf2Path_.toStdString());
     rebuildPresetMap();
     rebuildFamilyBanks();
-    lastSelection_ = INT_MIN; // the layers reference banks from the new SF2: reconfigure next block
 }
 
 void PlectroProcessor::rebuildFamilyBanks()
@@ -578,7 +590,13 @@ void PlectroProcessor::setStateInformation(const void* data, int sizeInBytes)
         if (tree.isValid())
         {
             if (tree.hasProperty("sf2Path"))
+            {
                 sf2Path_ = tree.getProperty("sf2Path").toString();
+                // A project saved with an older build may reference a since renamed or moved font;
+                // fall back to the bundled one so restoring a project never leaves it silent.
+                if (! juce::File(sf2Path_).existsAsFile())
+                    sf2Path_ = bundledSoundFontPath();
+            }
             apvts_.replaceState(tree);
         }
     }

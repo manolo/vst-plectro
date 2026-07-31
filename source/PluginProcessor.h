@@ -75,6 +75,7 @@ public:
 
     // SF2 path is managed outside the APVTS (strings do not fit the float parameter model).
     void setSoundFontPath(const juce::String& path);
+    void useBundledSoundFont(); // switch back to the edition's bundled font
     juce::String getSoundFontPath() const { return sf2Path_; }
 
     // Presets of the loaded SF2, for the instrument picker in the editor.
@@ -98,6 +99,7 @@ private:
     juce::String bundledSoundFontPath() const; // <bundle>/Contents/Resources/<edition SF2>
     void ingestMidi(const juce::MidiBuffer& midi);
     void renderScheduled(juce::AudioBuffer<float>& buffer);
+    void reloadSoundFont(); // load sf2Path_, falling back to the bundled font if it does not exist
     void rebuildPresetMap(); // derive articulation -> preset from the loaded SF2's preset names
     void rebuildFamilyBanks(); // which SF2 banks are present per family, for the "All" ensembles
 

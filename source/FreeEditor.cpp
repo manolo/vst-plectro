@@ -196,6 +196,8 @@ void FreeEditor::resetToDefaults()
                 continue; // keep the chosen instrument and this instance's random seed
         param->setValueNotifyingHost(param->getDefaultValue());
     }
+    processor_.useBundledSoundFont(); // return to the internal font
+    rebuildInstrumentList();
     updateEnablement();
 }
 
