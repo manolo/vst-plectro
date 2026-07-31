@@ -1,0 +1,193 @@
+#include "EditorLookAndFeel.h"
+
+namespace plectro {
+
+using palette::accent;
+using palette::background;
+using palette::dim;
+using palette::panel;
+using palette::section;
+using palette::text;
+
+HumanLookAndFeel::HumanLookAndFeel()
+    : juce::LookAndFeel_V4(juce::LookAndFeel_V4::getMidnightColourScheme())
+{
+    setColour(juce::ResizableWindow::backgroundColourId, background);
+    setColour(juce::Slider::rotarySliderFillColourId, accent);
+    setColour(juce::Slider::rotarySliderOutlineColourId, panel);
+    setColour(juce::Slider::thumbColourId, accent);
+    setColour(juce::Slider::textBoxTextColourId, text);
+    setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    setColour(juce::ComboBox::backgroundColourId, panel);
+    setColour(juce::ComboBox::textColourId, text);
+    setColour(juce::ComboBox::outlineColourId, panel);
+    setColour(juce::ComboBox::arrowColourId, accent);
+    setColour(juce::PopupMenu::backgroundColourId, panel);
+    setColour(juce::PopupMenu::textColourId, text);
+    setColour(juce::PopupMenu::highlightedBackgroundColourId, accent);
+    setColour(juce::PopupMenu::highlightedTextColourId, background);
+    setColour(juce::Label::textColourId, text);
+    setColour(juce::ToggleButton::textColourId, text);
+    setColour(juce::ToggleButton::tickColourId, accent);
+    setColour(juce::TextButton::buttonColourId, panel);
+    setColour(juce::TextButton::textColourOffId, text);
+    setColour(juce::TooltipWindow::backgroundColourId, juce::Colour(0xff33353d));
+    setColour(juce::TooltipWindow::textColourId, text);
+    setColour(juce::TooltipWindow::outlineColourId, juce::Colour(0xff45474f));
+}
+
+void HumanLookAndFeel::drawTooltip(juce::Graphics& g, const juce::String& tip, int width, int height)
+{
+    g.fillAll(findColour(juce::TooltipWindow::backgroundColourId)); // square fill, no rounded corners
+    g.setColour(findColour(juce::TooltipWindow::outlineColourId));
+    g.drawRect(0, 0, width, height, 1);
+    g.setColour(findColour(juce::TooltipWindow::textColourId));
+    g.setFont(juce::Font(juce::FontOptions(13.0f)));
+    g.drawFittedText(tip, 8, 5, width - 16, height - 10, juce::Justification::topLeft, 10);
+}
+
+namespace {
+struct KnobGeom
+{
+    float cx, cy, r, angle;
+};
+KnobGeom knobGeom(int x, int y, int w, int h, float pos, float a0, float a1, float margin)
+{
+    const float r = juce::jmin(w, h) * 0.5f - margin;
+    return { x + w * 0.5f, y + h * 0.5f, r, a0 + pos * (a1 - a0) };
+}
+juce::Point<float> onDial(float cx, float cy, float radius, float angle)
+{
+    return { cx + radius * std::cos(angle - juce::MathConstants<float>::halfPi),
+             cy + radius * std::sin(angle - juce::MathConstants<float>::halfPi) };
+}
+} // namespace
+
+void KnobVintage::drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, float pos,
+                                   float a0, float a1, juce::Slider&)
+{
+    const auto k = knobGeom(x, y, w, h, pos, a0, a1, 8.0f);
+
+    // Ticks around the dial.
+    g.setColour(dim);
+    for (int i = 0; i <= 10; ++i)
+    {
+        const float a = a0 + (i / 10.0f) * (a1 - a0);
+        const auto p1 = onDial(k.cx, k.cy, k.r + 2.0f, a);
+        const auto p2 = onDial(k.cx, k.cy, k.r + 6.0f, a);
+        g.drawLine({ p1, p2 }, 1.4f);
+    }
+
+    // Cap.
+    g.setColour(section.brighter(0.15f));
+    g.fillEllipse(k.cx - k.r, k.cy - k.r, k.r * 2, k.r * 2);
+    g.setColour(panel.brighter(0.2f));
+    g.drawEllipse(k.cx - k.r, k.cy - k.r, k.r * 2, k.r * 2, 1.5f);
+
+    // Pointer line.
+    const auto tip = onDial(k.cx, k.cy, k.r - 3.0f, k.angle);
+    const auto base = onDial(k.cx, k.cy, k.r * 0.25f, k.angle);
+    g.setColour(accent);
+    g.drawLine({ base, tip }, 3.0f);
+}
+
+void KnobArrow::drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, float pos,
+                                 float a0, float a1, juce::Slider&)
+{
+    const auto k = knobGeom(x, y, w, h, pos, a0, a1, 8.0f);
+
+    // Base cap.
+    g.setColour(section.brighter(0.1f));
+    g.fillEllipse(k.cx - k.r * 0.7f, k.cy - k.r * 0.7f, k.r * 1.4f, k.r * 1.4f);
+    g.setColour(panel.brighter(0.2f));
+    g.drawEllipse(k.cx - k.r * 0.7f, k.cy - k.r * 0.7f, k.r * 1.4f, k.r * 1.4f, 1.5f);
+
+    // Chicken-head arrow pointer, rotated to the value angle.
+    juce::Path arrow;
+    const float half = k.r * 0.22f;
+    arrow.startNewSubPath(0.0f, -k.r + 2.0f);       // tip (up)
+    arrow.lineTo(-half, k.r * 0.35f);
+    arrow.lineTo(half, k.r * 0.35f);
+    arrow.closeSubPath();
+    g.setColour(accent);
+    g.fillPath(arrow, juce::AffineTransform::rotation(k.angle).translated(k.cx, k.cy));
+}
+
+void KnobBakelite::drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, float pos,
+                                    float a0, float a1, juce::Slider&)
+{
+    const auto k = knobGeom(x, y, w, h, pos, a0, a1, 8.0f);
+    const float arcR = k.r;
+
+    juce::Path back;
+    back.addCentredArc(k.cx, k.cy, arcR, arcR, 0.0f, a0, a1, true);
+    g.setColour(panel);
+    g.strokePath(back, juce::PathStrokeType(3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+
+    juce::Path val;
+    val.addCentredArc(k.cx, k.cy, arcR, arcR, 0.0f, a0, k.angle, true);
+    g.setColour(accent);
+    g.strokePath(val, juce::PathStrokeType(3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+
+    // Bakelite cap.
+    const float cr = k.r * 0.72f;
+    g.setColour(section.darker(0.2f));
+    g.fillEllipse(k.cx - cr, k.cy - cr, cr * 2, cr * 2);
+    g.setColour(panel);
+    g.drawEllipse(k.cx - cr, k.cy - cr, cr * 2, cr * 2, 1.0f);
+
+    // Rim indicator dot.
+    const auto dot = onDial(k.cx, k.cy, cr - 6.0f, k.angle);
+    g.setColour(accent);
+    g.fillEllipse(dot.x - 3.0f, dot.y - 3.0f, 6.0f, 6.0f);
+}
+
+void TremoloLed::paint(juce::Graphics& g)
+{
+    auto r = getLocalBounds().toFloat().reduced(1.0f);
+    const juce::Colour off { 0xff2a2c33 };
+    g.setColour(off.interpolatedWith(colour, level_));
+    g.fillEllipse(r);
+    if (level_ > 0.01f) {
+        g.setColour(colour.withAlpha(0.35f * level_));
+        g.drawEllipse(r.expanded(1.5f), 2.0f);
+    }
+    g.setColour(juce::Colour(0xff45474f));
+    g.drawEllipse(r, 1.0f);
+}
+
+void LevelMeter::paint(juce::Graphics& g)
+{
+    auto r = getLocalBounds().toFloat();
+    g.setColour(juce::Colour(0xff1e1f24));
+    g.fillRoundedRectangle(r, 2.0f);
+    const float lvl = juce::jlimit(0.0f, 1.0f, level_);
+    const juce::Colour c = lvl < 0.7f ? juce::Colour(0xff6fcf6f)
+                         : lvl < 0.9f ? juce::Colour(0xffd9a066)
+                                      : juce::Colour(0xffd96666);
+    g.setColour(c);
+    g.fillRoundedRectangle(r.withWidth(r.getWidth() * lvl), 2.0f);
+    g.setColour(juce::Colour(0xff45474f));
+    g.drawRoundedRectangle(r.reduced(0.5f), 2.0f, 1.0f);
+}
+
+void BipolarMeter::paint(juce::Graphics& g)
+{
+    auto r = getLocalBounds().toFloat();
+    g.setColour(juce::Colour(0xff1e1f24));
+    g.fillRoundedRectangle(r, 2.0f);
+    const float cx = r.getCentreX();
+    const float half = r.getWidth() * 0.5f;
+    const float v = juce::jlimit(-1.0f, 1.0f, value_);
+    g.setColour(juce::Colour(0xff6fcf6f)); // green both directions
+    if (v >= 0.0f)
+        g.fillRect(juce::Rectangle<float>(cx, r.getY(), half * v, r.getHeight()));       // boosted: right
+    else
+        g.fillRect(juce::Rectangle<float>(cx + half * v, r.getY(), half * (-v), r.getHeight())); // reduced: left
+    g.setColour(juce::Colour(0xff9aa0a6));
+    g.drawLine(cx, r.getY(), cx, r.getBottom(), 1.0f); // centre tick
+    g.setColour(juce::Colour(0xff45474f));
+    g.drawRoundedRectangle(r.reduced(0.5f), 2.0f, 1.0f);
+}
+
+} // namespace plectro

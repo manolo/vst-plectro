@@ -1,0 +1,17 @@
+build/
+build*/
+dist/
+cmake-build-*/
+.cache/
+compile_commands.json
+
+# Generated public free edition tree (its own git repo: manolo/vst-plectro).
+/vst-plectro/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.xcodeproj

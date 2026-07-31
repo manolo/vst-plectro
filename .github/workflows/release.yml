@@ -1,0 +1,107 @@
+# Public free edition release workflow. The export script (scripts/export-public.sh) copies this to
+# the public repo as .github/workflows/release.yml. Pushing a tag like v0.1 builds the portable free
+# Plectro bundles for macOS and publishes them as a GitHub Release.
+#
+# Currently macOS Apple Silicon (arm64). Universal (Intel) and Windows are follow ups. Real code
+# signing / notarization is gated on the Apple secrets being present; without them the bundles are
+# ad-hoc signed (Gatekeeper shows a right-click to open the first time).
+name: release
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+permissions:
+  contents: write # create the GitHub Release
+
+jobs:
+  macos:
+    name: macOS (Apple Silicon)
+    runs-on: macos-14
+    env:
+      # Non empty only when the owner has configured the corresponding repository secrets.
+      HAS_SIGNING: ${{ secrets.MACOS_CERT_P12 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true # the bundled SoundFont is stored in git-lfs
+
+      # glib + gettext + pkg-config are needed to build the minimal FluidSynth from source; ninja to build.
+      - name: Install build dependencies
+        run: brew install pkg-config glib gettext ninja
+
+      - name: Provide the SoundFont
+        # The free SoundFont (CC0) is not committed here. Commit it at assets/Plectro.sf2, or set the
+        # PLECTRO_SF2_URL repository secret to a direct download URL. See distribution plan Phase 2.
+        env:
+          SF2_URL: ${{ secrets.PLECTRO_SF2_URL }}
+        run: |
+          mkdir -p sf2
+          if [ -f assets/Plectro.sf2 ]; then
+            cp assets/Plectro.sf2 sf2/Plectro.sf2
+          elif [ -n "$SF2_URL" ]; then
+            curl -fsSL "$SF2_URL" -o sf2/Plectro.sf2
+          else
+            echo "No SoundFont: commit assets/Plectro.sf2 or set the PLECTRO_SF2_URL secret." >&2
+            exit 1
+          fi
+
+      - name: Configure
+        run: >
+          cmake -B build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DHVST_BUILD_TESTS=OFF
+          -DPLECTRO_MINIMAL_FLUIDSYNTH=ON
+          -DPLECTRO_BUNDLE_DEPS=ON
+          -DPLECTRO_ASSETS_DIR=${{ github.workspace }}/sf2
+
+      - name: Build
+        run: cmake --build build --target plectro_VST3 plectro_AU
+
+      - name: Verify portability
+        # The bundles must not reference Homebrew or any GPL-3 library (readline).
+        shell: bash
+        run: |
+          fail=0
+          while IFS= read -r macho; do
+            bad=$(otool -L "$macho" 2>/dev/null | tail -n +2 | awk '{print $1}' \
+                  | grep -iE "/opt/homebrew|/usr/local|readline" || true)
+            [ -n "$bad" ] && { echo "LEAK in $macho:"; echo "$bad"; fail=1; }
+          done < <(find build/plectro_artefacts -type f \( -path '*/MacOS/*' -o -path '*/Frameworks/*' \))
+          [ $fail -eq 0 ] && echo "Portable: no host paths, no readline."
+          exit $fail
+
+      - name: Sign and notarize
+        # Placeholder for Developer ID signing + notarytool + stapler (distribution plan Phase 4).
+        # Runs only when the Apple credentials are configured; otherwise the bundles stay ad-hoc signed.
+        if: env.HAS_SIGNING == 'true'
+        run: |
+          echo "Signing secrets present; plug Developer ID codesign + notarytool + stapler here."
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p dist
+          vst3=$(find build/plectro_artefacts -type d -name 'Plectro.vst3' | head -1)
+          au=$(find build/plectro_artefacts -type d -name 'Plectro.component' | head -1)
+          ditto -c -k --keepParent "$vst3" "dist/Plectro-${{ github.ref_name }}-macOS-VST3.zip"
+          ditto -c -k --keepParent "$au" "dist/Plectro-${{ github.ref_name }}-macOS-AU.zip"
+
+      - name: Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          fail_on_unmatched_files: true
+          body: |
+            ## Plectro ${{ github.ref_name }}
+
+            A humanized plucked string instrument (bandurria, laud, mandolina) for MuseScore and any
+            VST3/AU host. macOS, Apple Silicon.
+
+            ### Install
+            - VST3: unzip and move `Plectro.vst3` to `~/Library/Audio/Plug-Ins/VST3/`
+            - AU: unzip and move `Plectro.component` to `~/Library/Audio/Plug-Ins/Components/`
+
+            Then restart your host. If the plugin is unsigned, the first time right-click it in Finder
+            and choose Open to clear Gatekeeper.
