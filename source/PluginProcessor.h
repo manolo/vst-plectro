@@ -91,9 +91,9 @@ public:
     float outputLevel() const { return outputLevel_.load(std::memory_order_relaxed); }
     int lastInputVelocity() const { return lastInputVelocity_.load(std::memory_order_relaxed); }
 
+
     // True once a host keyswitch has been seen this playback session (reset on transport stop).
     // While true the rhythmic detector is off, so the instrument trusts the host's keyswitches.
-    bool isKeyswitchSessionActive() const { return keyswitchSeen_.load(std::memory_order_relaxed); }
 
 private:
     PlaybackParams readParams() const;

@@ -106,7 +106,7 @@ PlaybackParams PlectroProcessor::readParams() const
     return p;
 }
 
-void PlectroProcessor::prepareToPlay(double sampleRate, int)
+void PlectroProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     sampleRate_ = sampleRate;
     const double lookaheadMs = apvts_.getRawParameterValue(pid::lookaheadMs)->load();
@@ -114,6 +114,7 @@ void PlectroProcessor::prepareToPlay(double sampleRate, int)
     setLatencySamples(static_cast<int>(lookaheadSamples_));
 
     engine_.prepare(sampleRate);
+    juce::ignoreUnused(samplesPerBlock);
     reloadSoundFont();
 
     if (static_cast<int>(layers_.size()) != kMaxLayers)

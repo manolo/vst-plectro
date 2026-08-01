@@ -25,7 +25,7 @@ FreeEditor::FreeEditor(PlectroProcessor& p)
     titleLabel_.setColour(juce::Label::textColourId, text);
     addAndMakeVisible(titleLabel_);
 
-    channelInfoLabel_.setFont(juce::Font(juce::FontOptions(13.0f)));
+    channelInfoLabel_.setFont(juce::Font(juce::FontOptions(13.0f).withStyle("Bold")));
     channelInfoLabel_.setColour(juce::Label::textColourId, dim);
     channelInfoLabel_.setJustificationType(juce::Justification::centredLeft);
     addAndMakeVisible(channelInfoLabel_);
@@ -52,11 +52,11 @@ FreeEditor::FreeEditor(PlectroProcessor& p)
     winLed_.colour = accent;                  // warm: tremolo coming from the detector
     addAndMakeVisible(ksLed_);
     addAndMakeVisible(winLed_);
-    ksLedLabel_.setText("KS", juce::dontSendNotification);
-    winLedLabel_.setText("WIN", juce::dontSendNotification);
+    ksLedLabel_.setText("keyswitch", juce::dontSendNotification);
+    winLedLabel_.setText("window", juce::dontSendNotification);
     for (auto* l : { &ksLedLabel_, &winLedLabel_ }) {
         l->setColour(juce::Label::textColourId, dim);
-        l->setFont(juce::Font(juce::FontOptions(11.0f)));
+        l->setFont(juce::Font(juce::FontOptions(10.0f)));
         addAndMakeVisible(*l);
     }
 
@@ -73,7 +73,7 @@ FreeEditor::FreeEditor(PlectroProcessor& p)
     resetButton_.onClick = [this] { resetToDefaults(); };
     addAndMakeVisible(resetButton_);
 
-    makeRotary(windowSlider_, windowLabel_, "Tremolo Win");
+    makeRotary(windowSlider_, windowLabel_, "Tremolo Window");
     makeRotary(gainSlider_, gainLabel_, "Gain");
     windowSlider_.setLookAndFeel(&lnfVintage_);
     gainSlider_.setLookAndFeel(&lnfVintage_);
@@ -81,7 +81,7 @@ FreeEditor::FreeEditor(PlectroProcessor& p)
     gainAtt_ = std::make_unique<APVTS::SliderAttachment>(processor_.state(), pid::masterGain, gainSlider_);
 
     windowSlider_.setTooltip("Largest gap between strokes still treated as one tremolo. Adapts to a ritardando.");
-    windowLabel_.setTooltip("Detector window: the largest gap between repeated notes still merged into one tremolo. Disabled while a host keyswitch tremolo is playing.");
+    windowLabel_.setTooltip("Detector window: the largest gap between repeated notes still merged into one tremolo.");
     gainSlider_.setTooltip("Output level.");
 
     for (auto* s : { &windowSlider_, &gainSlider_ })
@@ -89,12 +89,19 @@ FreeEditor::FreeEditor(PlectroProcessor& p)
             if (auto* box = dynamic_cast<juce::Label*>(ch))
                 box->setFont(juce::Font(juce::FontOptions(11.0f)));
 
+    // Display-only components must not intercept the mouse, so a control's tooltip is never swallowed
+    // by a purely visual component overlapping it.
+    juce::Component* const displays[] = { &ksLed_, &winLed_, &ksLedLabel_, &winLedLabel_,
+                                          &gainMeter_, &channelInfoLabel_, &titleLabel_, &footerLabel_ };
+    for (juce::Component* c : displays)
+        c->setInterceptsMouseClicks(false, false);
+
     rebuildInstrumentList();
     updateEnablement();
     startTimerHz(30); // poll tremolo activity for the indicator LEDs
 
     setResizable(false, false);
-    setSize(460, 218);
+    setSize(460, 278);
 }
 
 FreeEditor::~FreeEditor()
@@ -193,12 +200,11 @@ void FreeEditor::resized()
     header.removeFromLeft(6);
     instrumentBox_.setBounds(header.withSizeKeepingCentre(header.getWidth(), 26));
 
-    // Channel/track name the host passed, just under the title; removed entirely when there is none.
-    if (channelInfoLabel_.getText().isNotEmpty())
-    {
-        area.removeFromTop(2);
-        channelInfoLabel_.setBounds(area.removeFromTop(14));
-    }
+    // Channel/track name the host passed, just under the title. The row is always reserved (even
+    // before the host sends the name) so the sections below do not jump up on first open and then
+    // drop when the name arrives.
+    area.removeFromTop(2);
+    channelInfoLabel_.setBounds(area.removeFromTop(14));
     area.removeFromTop(2);
 
     auto place = [](juce::Rectangle<int> cell, juce::Slider& s, juce::Label& l) {
@@ -210,7 +216,7 @@ void FreeEditor::resized()
     area.removeFromTop(12);
 
     const int gap = 10;
-    const int cellH = 92;
+    const int cellH = 128;
     auto botTitle = area.removeFromTop(20);
     auto bot = area.removeFromTop(cellH + 16);
     // Tremolo and Output share the width evenly (output has only gain here).
@@ -219,27 +225,29 @@ void FreeEditor::resized()
     bot.removeFromLeft(gap);
     outBox_ = bot;
 
-    tremEnableButton_.setBounds(tremBox_.getX() + 4, botTitle.getY(), 130, 20);
-    captureTrillsButton_.setBounds(tremBox_.getRight() - 44, botTitle.getY(), 40, 20);
+    const int trX = tremBox_.getRight() - 44;
+    captureTrillsButton_.setBounds(trX, botTitle.getY(), 40, 20);
+    tremEnableButton_.setBounds(tremBox_.getX() + 4, botTitle.getY(),
+                                juce::jmax(90, trX - 6 - (tremBox_.getX() + 4)), 20);
     outputEnableButton_.setBounds(outBox_.getX() + 4, botTitle.getY(), 100, 20);
 
     {
         auto ti = tremBox_.reduced(8);
         auto ledRow = ti.removeFromBottom(14);
-        auto knobCell = ti.withSizeKeepingCentre(juce::jmin(ti.getWidth(), 84), juce::jmin(ti.getHeight(), 84));
+        auto knobCell = ti.withSizeKeepingCentre(juce::jmin(ti.getWidth(), 108), juce::jmin(ti.getHeight(), 108));
         place(knobCell, windowSlider_, windowLabel_);
 
         auto winCell = ledRow.removeFromLeft(ledRow.getWidth() / 2);
         auto ksCell = ledRow;
         winLed_.setBounds(winCell.getX(), winCell.getCentreY() - 6, 12, 12);
-        winLedLabel_.setBounds(winCell.getX() + 15, winCell.getCentreY() - 8, 34, 16);
+        winLedLabel_.setBounds(winCell.getX() + 15, winCell.getCentreY() - 8, winCell.getWidth() - 15, 16);
         ksLed_.setBounds(ksCell.getX(), ksCell.getCentreY() - 6, 12, 12);
-        ksLedLabel_.setBounds(ksCell.getX() + 15, ksCell.getCentreY() - 8, 34, 16);
+        ksLedLabel_.setBounds(ksCell.getX() + 15, ksCell.getCentreY() - 8, ksCell.getWidth() - 15, 16);
     }
     {
         auto oi = outBox_.reduced(8);
         auto gainMeterRow = oi.removeFromBottom(14);
-        auto gainCell = oi.withSizeKeepingCentre(juce::jmin(oi.getWidth(), 96), oi.getHeight());
+        auto gainCell = oi.withSizeKeepingCentre(juce::jmin(oi.getWidth(), 108), juce::jmin(oi.getHeight(), 108));
         place(gainCell, gainSlider_, gainLabel_);
         gainMeter_.setBounds(gainMeterRow.reduced(8, 2));
     }
@@ -247,9 +255,14 @@ void FreeEditor::resized()
 
 void FreeEditor::paint(juce::Graphics& g)
 {
+    // Diagonal background gradient: black over most of the dialog, ramping to a dark bluish violet
+    // only near the bottom-right corner (the Alcala / tuna colours). The section boxes below are
+    // slightly translucent so the violet shows through, not just the margins.
     auto full = getLocalBounds().toFloat();
-    g.setGradientFill(juce::ColourGradient(background.brighter(0.10f), full.getCentreX(), full.getY(),
-                                           background.darker(0.10f), full.getCentreX(), full.getBottom(), false));
+    juce::ColourGradient bg(juce::Colour(0xff08070b), full.getTopLeft(),
+                            juce::Colour(0xff37205c), full.getBottomRight(), false);
+    bg.addColour(0.75, juce::Colour(0xff110b1f)); // stays near black until 75%, then turns violet
+    g.setGradientFill(bg);
     g.fillRect(full);
 
     struct Sec { juce::Rectangle<int> box; bool enabled; };
@@ -261,7 +274,7 @@ void FreeEditor::paint(juce::Graphics& g)
     {
         if (s.box.isEmpty())
             continue;
-        g.setColour(s.enabled ? section : section.darker(0.4f));
+        g.setColour((s.enabled ? section : section.darker(0.4f)).withAlpha(0.80f)); // let the gradient show through
         g.fillRoundedRectangle(s.box.toFloat(), 6.0f);
         g.setColour(panel);
         g.drawRoundedRectangle(s.box.toFloat().reduced(0.5f), 6.0f, 1.2f);
@@ -270,25 +283,28 @@ void FreeEditor::paint(juce::Graphics& g)
 
 void FreeEditor::timerCallback()
 {
+    // Snap to the target once very close so an idle meter/LED settles instead of easing forever and
+    // repainting 30x a second, which starves the tooltip timer.
     auto approach = [](float cur, float target) {
         const float k = target > cur ? 0.6f : 0.12f;
-        return cur + (target - cur) * k;
+        float next = cur + (target - cur) * k;
+        if (juce::jmax(next - target, target - next) < 0.002f)
+            next = target;
+        return next;
     };
     ksLevel_ = approach(ksLevel_, processor_.isKeyswitchTremoloActive() ? 1.0f : 0.0f);
     winLevel_ = approach(winLevel_, processor_.isDetectorTremoloActive() ? 1.0f : 0.0f);
     ksLed_.setLevel(ksLevel_);
     winLed_.setLevel(winLevel_);
 
-    const bool tremOn = tremEnableButton_.getToggleState();
-    const bool ksSession = processor_.isKeyswitchSessionActive();
-    windowSlider_.setEnabled(tremOn && !ksSession);
-    windowLabel_.setEnabled(tremOn && !ksSession);
 
     const float peak = processor_.outputLevel();
     const float db = juce::Decibels::gainToDecibels(peak, -60.0f);
     const float target = juce::jlimit(0.0f, 1.0f, (db + 60.0f) / 60.0f);
     const float k = target > gainMeterLevel_ ? 0.7f : 0.10f;
     gainMeterLevel_ += (target - gainMeterLevel_) * k;
+    if (juce::jmax(gainMeterLevel_ - target, target - gainMeterLevel_) < 0.002f)
+        gainMeterLevel_ = target; // settle so an idle meter stops repainting
     gainMeter_.setLevel(gainMeterLevel_);
 
     const int bank = static_cast<int>(processor_.state().getRawParameterValue(pid::instrumentBank)->load());
@@ -299,11 +315,9 @@ void FreeEditor::timerCallback()
 
     const juce::String ch = processor_.hostTrackName();
     if (ch != lastChannelName_) {
-        const bool hadChannel = lastChannelName_.isNotEmpty();
         lastChannelName_ = ch;
         channelInfoLabel_.setText(ch.isEmpty() ? juce::String() : "Channel: " + ch, juce::dontSendNotification);
-        if (ch.isNotEmpty() != hadChannel)
-            resized(); // the channel line appears or disappears: re-lay out so no empty gap remains
+        // No relayout needed: the channel row is always reserved (see resized()).
     }
 }
 

@@ -23,6 +23,17 @@ void populateInstrumentBox(juce::ComboBox& box, const std::vector<SoundFontEngin
     const char* prefix[3] = { "Band: ", "Laud: ", "Mand: " };
     const int allBank[3] = { kAllBandurria, kAllLaud, kAllMandolina };
 
+    // Count the instruments in each family so the ensemble entry is only offered when there is
+    // actually a section to build (2+ banks). A family with a single bank (as in the free edition's
+    // SoundFont) would render "Ensemble" identical to that lone instrument, so it is hidden.
+    int famCount[3] = { 0, 0, 0 };
+    for (const auto& pr : instr)
+    {
+        const int f = familyOf(pr.bank);
+        if (f <= 2)
+            ++famCount[f];
+    }
+
     for (std::size_t i = 0; i < instr.size(); ++i)
     {
         const int fam = familyOf(instr[i].bank);
@@ -34,11 +45,13 @@ void populateInstrumentBox(juce::ComboBox& box, const std::vector<SoundFontEngin
             name = name.substring(2);
         box.addItem(juce::String(prefix[fam]) + name, instr[i].bank + 1); // itemId cannot be 0
 
-        // After the last preset of a family, add its "All" ensemble, then a separator.
+        // After the last preset of a family, add its "All" ensemble (only if the family has 2+
+        // banks), then a separator.
         const bool lastOfFamily = (i + 1 >= instr.size()) || (familyOf(instr[i + 1].bank) != fam);
         if (lastOfFamily)
         {
-            box.addItem(juce::String(prefix[fam]) + "Ensemble", allBank[fam] + 1);
+            if (famCount[fam] >= 2)
+                box.addItem(juce::String(prefix[fam]) + "Ensemble", allBank[fam] + 1);
             if (i + 1 < instr.size())
                 box.addSeparator();
         }

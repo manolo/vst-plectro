@@ -29,15 +29,29 @@ public:
     // Toggles render as a modern pill switch (sliding knob) instead of the default prominent tick box.
     void drawToggleButton(juce::Graphics&, juce::ToggleButton&,
                           bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override;
+    // Text buttons get a filled, outlined rounded body so they read as buttons at rest, not only on
+    // hover (the default fill blends into the panels).
+    void drawButtonBackground(juce::Graphics&, juce::Button&, const juce::Colour&,
+                              bool isOver, bool isDown) override;
 };
 
-// Same theme but with a large glyph font, for the round Reset button.
+// Same theme but with a large glyph font, for the Reset button: just the glyph, no box around it.
 class GlyphLookAndFeel : public HumanLookAndFeel
 {
 public:
     juce::Font getTextButtonFont(juce::TextButton&, int buttonHeight) override
     {
-        return juce::Font(juce::FontOptions(juce::jmax(20.0f, static_cast<float>(buttonHeight) * 0.92f)));
+        return juce::Font(juce::FontOptions(juce::jmax(22.0f, static_cast<float>(buttonHeight) * 1.01f)));
+    }
+    // No framed box: only a faint round highlight on hover/press for affordance.
+    void drawButtonBackground(juce::Graphics& g, juce::Button& b, const juce::Colour&,
+                              bool isOver, bool isDown) override
+    {
+        if (isOver || isDown)
+        {
+            g.setColour(juce::Colours::white.withAlpha(isDown ? 0.12f : 0.07f));
+            g.fillEllipse(b.getLocalBounds().toFloat().reduced(1.0f));
+        }
     }
 };
 
@@ -91,20 +105,17 @@ class LevelMeter : public juce::Component
 {
 public:
     void setLevel(float l) { if (l != level_) { level_ = l; repaint(); } }
+    // Fixed bar colour. When left transparent (the default) the bar ramps green -> amber -> red with
+    // level, which suits the output VU; a solid colour suits a labelled meter (compression, exciter).
+    void setBarColour(juce::Colour c) { barColour_ = c; }
+    // Fill from the right edge growing left instead of the default left edge growing right. Used so a
+    // pair of meters can grow outward from a shared centre.
+    void setFillFromRight(bool r) { fillFromRight_ = r; }
     void paint(juce::Graphics&) override;
 private:
     float level_ = 0.0f;
-};
-
-// Bipolar indicator (-1..1) centred at 0: fills right for positive, left for negative. Used to
-// show the direction and amount the compression is shifting the current note's dynamic.
-class BipolarMeter : public juce::Component
-{
-public:
-    void setValue(float v) { if (v != value_) { value_ = v; repaint(); } }
-    void paint(juce::Graphics&) override;
-private:
-    float value_ = 0.0f;
+    juce::Colour barColour_ {};
+    bool fillFromRight_ = false;
 };
 
 } // namespace plectro

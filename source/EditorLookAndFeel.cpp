@@ -51,9 +51,17 @@ void HumanLookAndFeel::drawTooltip(juce::Graphics& g, const juce::String& tip, i
 juce::Rectangle<int> HumanLookAndFeel::getTooltipBounds(const juce::String& text, juce::Point<int> screenPos,
                                                         juce::Rectangle<int> parentArea)
 {
-    // Start from the default bounds, then add height for extra padding (mostly at the bottom).
+    // Start from the default bounds, then add 10px of padding. Crucially, extend it AWAY from the
+    // cursor: the default places the box below the mouse for controls in the top half and above it
+    // for controls in the bottom half, always leaving a small gap. Extending downward in both cases
+    // would make the padded box reach back over the cursor for bottom-half controls, so the tooltip
+    // window itself becomes the component under the mouse, which makes JUCE reset and hide it in a
+    // loop, and the tip never settles. Padding upward when the box sits above the cursor keeps the
+    // gap intact.
     auto b = juce::LookAndFeel_V2::getTooltipBounds(text, screenPos, parentArea);
-    return b.withHeight(b.getHeight() + 10).constrainedWithin(parentArea);
+    const bool aboveCursor = b.getBottom() <= screenPos.y;
+    b = aboveCursor ? b.withTop(b.getY() - 10) : b.withHeight(b.getHeight() + 10);
+    return b.constrainedWithin(parentArea);
 }
 
 void HumanLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& b,
@@ -90,6 +98,20 @@ void HumanLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& b
     g.drawText(b.getButtonText(),
                juce::Rectangle<float>(textX, bounds.getY(), bounds.getRight() - textX, bounds.getHeight()),
                juce::Justification::centredLeft, true);
+}
+
+void HumanLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b, const juce::Colour&,
+                                            bool isOver, bool isDown)
+{
+    auto r = b.getLocalBounds().toFloat().reduced(0.5f);
+    const float ea = b.isEnabled() ? 1.0f : 0.4f; // fade when disabled
+    const juce::Colour fill = (isDown  ? panel.brighter(0.28f)
+                               : isOver ? panel.brighter(0.15f)
+                                        : panel.brighter(0.05f)).withMultipliedAlpha(ea);
+    g.setColour(fill);
+    g.fillRoundedRectangle(r, 4.0f);
+    g.setColour((isOver ? accent : dim).withMultipliedAlpha(ea));
+    g.drawRoundedRectangle(r, 4.0f, 1.0f);
 }
 
 void RoundButtonLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b, const juce::Colour&,
@@ -225,32 +247,19 @@ void LevelMeter::paint(juce::Graphics& g)
     g.setColour(juce::Colour(0xff1e1f24));
     g.fillRoundedRectangle(r, 2.0f);
     const float lvl = juce::jlimit(0.0f, 1.0f, level_);
-    const juce::Colour c = lvl < 0.7f ? juce::Colour(0xff6fcf6f)
-                         : lvl < 0.9f ? juce::Colour(0xffd9a066)
-                                      : juce::Colour(0xffd96666);
+    const juce::Colour c = barColour_.getAlpha() > 0
+                         ? barColour_
+                         : (lvl < 0.7f ? juce::Colour(0xff6fcf6f)
+                            : lvl < 0.9f ? juce::Colour(0xffd9a066)
+                                         : juce::Colour(0xffd96666));
     g.setColour(c);
-    g.fillRoundedRectangle(r.withWidth(r.getWidth() * lvl), 2.0f);
+    if (fillFromRight_)
+        g.fillRoundedRectangle(r.withTrimmedLeft(r.getWidth() * (1.0f - lvl)), 2.0f); // grows right -> left
+    else
+        g.fillRoundedRectangle(r.withWidth(r.getWidth() * lvl), 2.0f);                // grows left -> right
     g.setColour(juce::Colour(0xff45474f));
     g.drawRoundedRectangle(r.reduced(0.5f), 2.0f, 1.0f);
 }
 
-void BipolarMeter::paint(juce::Graphics& g)
-{
-    auto r = getLocalBounds().toFloat();
-    g.setColour(juce::Colour(0xff1e1f24));
-    g.fillRoundedRectangle(r, 2.0f);
-    const float cx = r.getCentreX();
-    const float half = r.getWidth() * 0.5f;
-    const float v = juce::jlimit(-1.0f, 1.0f, value_);
-    g.setColour(juce::Colour(0xff6fcf6f)); // green both directions
-    if (v >= 0.0f)
-        g.fillRect(juce::Rectangle<float>(cx, r.getY(), half * v, r.getHeight()));       // boosted: right
-    else
-        g.fillRect(juce::Rectangle<float>(cx + half * v, r.getY(), half * (-v), r.getHeight())); // reduced: left
-    g.setColour(juce::Colour(0xff9aa0a6));
-    g.drawLine(cx, r.getY(), cx, r.getBottom(), 1.0f); // centre tick
-    g.setColour(juce::Colour(0xff45474f));
-    g.drawRoundedRectangle(r.reduced(0.5f), 2.0f, 1.0f);
-}
 
 } // namespace plectro

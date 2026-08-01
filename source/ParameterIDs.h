@@ -112,7 +112,7 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
         ParameterID{captureTrills, 1}, "Capture Trills", true));
 
     layout.add(std::make_unique<AudioParameterFloat>(
-        ParameterID{jitterMs, 1}, "Timing Jitter", NormalisableRange<float>(0.0f, 40.0f), 17.0f, fmt(1, " ms")));
+        ParameterID{jitterMs, 1}, "Timing Jitter", NormalisableRange<float>(0.0f, 40.0f), 8.5f, fmt(1, " ms")));
     layout.add(std::make_unique<AudioParameterFloat>(
         ParameterID{breathingDepthMs, 1}, "Breathing Depth", NormalisableRange<float>(0.0f, 60.0f), 0.0f, fmt(1, " ms")));
     layout.add(std::make_unique<AudioParameterFloat>(
