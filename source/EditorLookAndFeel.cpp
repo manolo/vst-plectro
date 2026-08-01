@@ -56,6 +56,42 @@ juce::Rectangle<int> HumanLookAndFeel::getTooltipBounds(const juce::String& text
     return b.withHeight(b.getHeight() + 10).constrainedWithin(parentArea);
 }
 
+void HumanLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& b,
+                                        bool shouldDrawButtonAsHighlighted, bool /*shouldDrawButtonAsDown*/)
+{
+    const bool on = b.getToggleState();
+    const float ea = b.isEnabled() ? 1.0f : 0.4f; // whole switch fades when disabled
+    auto bounds = b.getLocalBounds().toFloat();
+
+    // Pill switch on the left: a rounded track with a sliding circular knob. Subtler than the
+    // default framed tick box; "on" fills the track with the accent, "off" is a dim panel outline.
+    const float h = juce::jmin(12.0f, bounds.getHeight());
+    const float w = h * 1.85f;
+    juce::Rectangle<float> track(bounds.getX(), bounds.getCentreY() - h * 0.5f, w, h);
+
+    g.setColour((on ? accent : panel).withMultipliedAlpha(ea));
+    g.fillRoundedRectangle(track, h * 0.5f);
+    if (!on)
+    {
+        g.setColour((shouldDrawButtonAsHighlighted ? dim.brighter(0.2f) : dim).withMultipliedAlpha(ea));
+        g.drawRoundedRectangle(track.reduced(0.5f), h * 0.5f, 1.0f);
+    }
+
+    const float pad = 2.0f;
+    const float knobD = h - pad * 2.0f;
+    const float kx = on ? track.getRight() - knobD - pad : track.getX() + pad;
+    g.setColour((on ? background : text.withAlpha(0.85f)).withMultipliedAlpha(ea));
+    g.fillEllipse(kx, track.getY() + pad, knobD, knobD);
+
+    // Label to the right of the switch.
+    g.setColour(b.findColour(juce::ToggleButton::textColourId).withMultipliedAlpha(ea));
+    g.setFont(juce::Font(juce::FontOptions(13.0f)));
+    const float textX = track.getRight() + 8.0f;
+    g.drawText(b.getButtonText(),
+               juce::Rectangle<float>(textX, bounds.getY(), bounds.getRight() - textX, bounds.getHeight()),
+               juce::Justification::centredLeft, true);
+}
+
 void RoundButtonLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& b, const juce::Colour&,
                                                   bool isOver, bool isDown)
 {
@@ -85,7 +121,7 @@ juce::Point<float> onDial(float cx, float cy, float radius, float angle)
 } // namespace
 
 void KnobVintage::drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, float pos,
-                                   float a0, float a1, juce::Slider&)
+                                   float a0, float a1, juce::Slider& slider)
 {
     const auto k = knobGeom(x, y, w, h, pos, a0, a1, 8.0f);
 
@@ -110,10 +146,12 @@ void KnobVintage::drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h
     const auto base = onDial(k.cx, k.cy, k.r * 0.25f, k.angle);
     g.setColour(accent);
     g.drawLine({ base, tip }, 3.0f);
+
+    if (!slider.isEnabled()) { g.setColour(background.withAlpha(0.55f)); g.fillRect(x, y, w, h); }
 }
 
 void KnobArrow::drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, float pos,
-                                 float a0, float a1, juce::Slider&)
+                                 float a0, float a1, juce::Slider& slider)
 {
     const auto k = knobGeom(x, y, w, h, pos, a0, a1, 8.0f);
 
@@ -132,10 +170,12 @@ void KnobArrow::drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, 
     arrow.closeSubPath();
     g.setColour(accent);
     g.fillPath(arrow, juce::AffineTransform::rotation(k.angle).translated(k.cx, k.cy));
+
+    if (!slider.isEnabled()) { g.setColour(background.withAlpha(0.55f)); g.fillRect(x, y, w, h); }
 }
 
 void KnobBakelite::drawRotarySlider(juce::Graphics& g, int x, int y, int w, int h, float pos,
-                                    float a0, float a1, juce::Slider&)
+                                    float a0, float a1, juce::Slider& slider)
 {
     const auto k = knobGeom(x, y, w, h, pos, a0, a1, 8.0f);
     const float arcR = k.r;
@@ -161,6 +201,8 @@ void KnobBakelite::drawRotarySlider(juce::Graphics& g, int x, int y, int w, int 
     const auto dot = onDial(k.cx, k.cy, cr - 6.0f, k.angle);
     g.setColour(accent);
     g.fillEllipse(dot.x - 3.0f, dot.y - 3.0f, 6.0f, 6.0f);
+
+    if (!slider.isEnabled()) { g.setColour(background.withAlpha(0.55f)); g.fillRect(x, y, w, h); }
 }
 
 void TremoloLed::paint(juce::Graphics& g)

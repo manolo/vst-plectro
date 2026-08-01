@@ -25,13 +25,13 @@ FreeEditor::FreeEditor(PlectroProcessor& p)
     titleLabel_.setColour(juce::Label::textColourId, text);
     addAndMakeVisible(titleLabel_);
 
-    channelInfoLabel_.setFont(juce::Font(juce::FontOptions(11.0f)));
+    channelInfoLabel_.setFont(juce::Font(juce::FontOptions(13.0f)));
     channelInfoLabel_.setColour(juce::Label::textColourId, dim);
     channelInfoLabel_.setJustificationType(juce::Justification::centredLeft);
     addAndMakeVisible(channelInfoLabel_);
 
     footerLabel_.setText(editorFooterText(), juce::dontSendNotification);
-    footerLabel_.setFont(juce::Font(juce::FontOptions(10.0f)));
+    footerLabel_.setFont(juce::Font(juce::FontOptions(12.0f)));
     footerLabel_.setColour(juce::Label::textColourId, dim);
     footerLabel_.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(footerLabel_);
@@ -93,7 +93,7 @@ FreeEditor::FreeEditor(PlectroProcessor& p)
     updateEnablement();
     startTimerHz(30); // poll tremolo activity for the indicator LEDs
 
-    setResizable(true, true);
+    setResizable(false, false);
     setSize(460, 218);
 }
 
@@ -158,6 +158,8 @@ void FreeEditor::updateEnablement()
     gainSlider_.setEnabled(outOn);
     gainLabel_.setEnabled(outOn);
     gainMeter_.setEnabled(outOn);
+
+    repaint(); // section boxes are painted darker when disabled
 }
 
 void FreeEditor::resetToDefaults()
@@ -176,11 +178,12 @@ void FreeEditor::resetToDefaults()
 
 void FreeEditor::resized()
 {
-    auto area = getLocalBounds().reduced(14);
+    auto area = getLocalBounds();
 
-    // Copyright and version, pinned to the very bottom.
-    footerLabel_.setBounds(area.removeFromBottom(16));
-    area.removeFromBottom(4);
+    // Copyright and version, pinned near the very bottom with a small padding (less than the side
+    // margin) so it sits closer to the edge.
+    footerLabel_.setBounds(area.removeFromBottom(18).reduced(14, 3));
+    area = area.reduced(14);
 
     // Header at the very top: title, instrument selector, reset far right.
     auto header = area.removeFromTop(34);
@@ -244,15 +247,24 @@ void FreeEditor::resized()
 
 void FreeEditor::paint(juce::Graphics& g)
 {
-    g.fillAll(background);
-    for (const auto& b : { tremBox_, outBox_ })
+    auto full = getLocalBounds().toFloat();
+    g.setGradientFill(juce::ColourGradient(background.brighter(0.10f), full.getCentreX(), full.getY(),
+                                           background.darker(0.10f), full.getCentreX(), full.getBottom(), false));
+    g.fillRect(full);
+
+    struct Sec { juce::Rectangle<int> box; bool enabled; };
+    const Sec secs[] = {
+        { tremBox_, tremEnableButton_.getToggleState() },
+        { outBox_, outputEnableButton_.getToggleState() },
+    };
+    for (const auto& s : secs)
     {
-        if (b.isEmpty())
+        if (s.box.isEmpty())
             continue;
-        g.setColour(section);
-        g.fillRoundedRectangle(b.toFloat(), 6.0f);
+        g.setColour(s.enabled ? section : section.darker(0.4f));
+        g.fillRoundedRectangle(s.box.toFloat(), 6.0f);
         g.setColour(panel);
-        g.drawRoundedRectangle(b.toFloat().reduced(0.5f), 6.0f, 1.2f);
+        g.drawRoundedRectangle(s.box.toFloat().reduced(0.5f), 6.0f, 1.2f);
     }
 }
 

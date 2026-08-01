@@ -26,6 +26,9 @@ public:
     // A bit taller than the default so the text has breathing room, especially at the bottom.
     juce::Rectangle<int> getTooltipBounds(const juce::String& text, juce::Point<int> screenPos,
                                           juce::Rectangle<int> parentArea) override;
+    // Toggles render as a modern pill switch (sliding knob) instead of the default prominent tick box.
+    void drawToggleButton(juce::Graphics&, juce::ToggleButton&,
+                          bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) override;
 };
 
 // Same theme but with a large glyph font, for the round Reset button.
