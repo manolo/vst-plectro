@@ -261,7 +261,7 @@ void FreeEditor::paint(juce::Graphics& g)
     auto full = getLocalBounds().toFloat();
     juce::ColourGradient bg(juce::Colour(0xff08070b), full.getTopLeft(),
                             juce::Colour(0xff37205c), full.getBottomRight(), false);
-    bg.addColour(0.75, juce::Colour(0xff110b1f)); // stays near black until 75%, then turns violet
+    bg.addColour(0.50, juce::Colour(0xff110b1f)); // stays near black until 50%, then turns violet
     g.setGradientFill(bg);
     g.fillRect(full);
 

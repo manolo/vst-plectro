@@ -1,48 +1,64 @@
 # Plectro VST
 
-A VST3 / AudioUnit **instrument** that humanizes plucked plectrum instruments (Spanish
-"pulso y pua": bandurria, laud) and plays your own SoundFont. It loads inside MuseScore 4 as
-the sound source for a staff, keeps the whole workflow in MuseScore, and makes the
-performance sound like a real player instead of a sequencer.
+A VST3 / AudioUnit **instrument** for the Spanish plucked plectrum family ("pulso y pua":
+bandurria, laud). It loads inside MuseScore 4 (or any VST3/AU host) as the sound source for a
+staff, plays a bundled SoundFont, and makes the two things MuseScore renders badly on these
+instruments, **tremolo** and **trills**, sound like a real player instead of a sequencer. The whole
+workflow stays in MuseScore: ordinary tremolo beams and ordinary ornaments, no velocity hacks.
 
-## What it does
 
-MuseScore renders correctly but mechanically: every onset is exactly on the grid and the
-dynamics are flat. Plectro fixes that at the note level, where it actually helps:
+## Tremolo, two techniques
 
-- **Tremolo by pattern, not by hack.** MuseScore renders a measured tremolo as a rapid burst
-  of repeated note-ons. The plugin detects that burst and triggers one sustained tremolo
-  sample, instead of a machine-gun of retriggers. A lone note plays the picked sample.
-- **Velocity is free for real dynamics again.** Because tremolo is detected from the pattern,
-  velocity no longer has to encode articulation, so MuseScore hairpins and dynamics flow
-  through as loudness (applied via engine gain / expression). Articulation is sent to the
-  SoundFont on the velocity band it expects (1-64 picked, 65-127 tremolo).
-- **Timing humanization:** per-note onset jitter plus a slow phrase "breathing" drift.
-- **Dynamics humanization:** note-to-note variation and phrase shaping on top of the notated
-  dynamic, with the tremolo swell preserved across the burst.
-- **Ensemble spread:** put an instance on each of bandurria 1 / 2 / 3 with a different
-  *Instance Seed* and the unison section sounds like several players, not one.
-- **Reproducible:** a global seed makes every render identical.
+MuseScore renders a measured tremolo as a rapid burst of repeated note ons. Plectro turns that back
+into one sustained tremolo voice instead of a machine gun of retriggers, and it can decide when a
+note is a tremolo in **two** ways:
 
-The sound comes from your SoundFont (e.g. `Bandurria-Con-Tremolo.sf2`), played by an embedded
-FluidSynth so the font's LFOs, envelopes, filter and looped tremolo layers are reproduced
-exactly.
+- **Keyswitch driven.** The patched MuseScore build advertises and sends a keyswitch per note (via
+  the VST3 `IKeyswitchController`), so the articulation is explicit and unambiguous.
+- **Automatic detection.** With a plain host, or before a keyswitch arrives, Plectro detects the
+  repeated note burst itself (within a configurable window) and collapses it into one tremolo.
+
+Both run today on purpose: the keyswitch path is the intended single source of truth, but a host
+side limit on how many keyswitch events a block can deliver can still drop events on dense passages.
+Until that keyswitch delivery issue is fixed, Plectro keeps both techniques so tremolo is reliable
+with or without the patched host.
+
+Because tremolo no longer has to be encoded in velocity, MuseScore hairpins and dynamics flow
+through as real loudness.
+
+## Trills and ornaments
+
+MuseScore also expands a trill (and mordents and turns) into a rapid alternation of note ons, which
+on a bandurria or laud sounds mechanical. With **Capture Trills** on, Plectro keeps only the main
+note and renders the ornament as a single sustained tremolo, so a trilled long note sounds like a
+tremolo roll on the written pitch instead of a stuttering two note trill. Turn it off to hear the
+ornament as written notes.
+
+## Sound
+
+The sound comes from a SoundFont played by an embedded FluidSynth, so the font's envelopes, filter,
+LFOs and looped tremolo layers are reproduced exactly. Each instrument bank carries its
+articulations as named presets (base pick, tremolo, picked tremolo attack, and where present mute,
+pizzicato and harmonic), selected by name at load time.
+
+The bundled font ships **bandurria** and **laud**.
+
 
 ## Architecture
 
 ```
-MuseScore (normal tremolo beams + normal dynamics)
-  -> note events (velocity = real dynamics)
+MuseScore (normal tremolo beams + normal ornaments + normal dynamics)
+  -> note events (+ keyswitches when the patched host drives them)
   -> Plectro:
        look-ahead buffer
-       -> tremolo detector (collapse repeated-note bursts)
-       -> humanizer (timing + dynamics + ensemble seed)
-       -> FluidSynth (your SF2: picked vs tremolo)
-  -> audio -> MuseScore mixer
+       -> articulation (keyswitch, or automatic tremolo/trill detection)
+       -> note variation
+       -> FluidSynth (the SoundFont: pick vs tremolo vs ...)
+  -> audio -> host mixer
 ```
 
-The humanization logic lives in a JUCE-free, unit-tested static library (`plectro_core`);
-the plugin is a thin JUCE wrapper plus a FluidSynth adapter.
+The articulation, detection and streaming logic live in a JUCE free, unit tested static library
+(`plectro_core`); the plugin is a thin JUCE wrapper plus a FluidSynth adapter.
 
 ## Build
 
@@ -65,9 +81,6 @@ cmake --build build --target core_tests
 ctest --test-dir build --output-on-failure
 ```
 
-Prebuilt binaries for macOS (VST3 + AU) and Windows (VST3) are produced by the GitHub Actions
-matrix, so a Windows VST3 is available without a Windows machine.
-
 ## Install
 
 Copy the built bundle into the plugin folder:
@@ -79,17 +92,12 @@ Copy the built bundle into the plugin folder:
 ## Use in MuseScore 4
 
 1. Open the Mixer (F10), pick the bandurria/laud staff, and set its sound to **Plectro**.
-2. Open the plugin UI and point *Load SF2* at your `Bandurria-Con-Tremolo.sf2`.
-3. Write ordinary tremolo beams on long notes and ordinary dynamics. The old velocity hack and
-   tied-note muting are no longer needed.
-4. For a section, duplicate the part across staves and give each instance a different
-   *Instance Seed*.
+2. Write ordinary tremolo beams on long notes, ordinary trills and ordinary dynamics. The old
+   velocity hack and tied note muting are not needed.
 
 ## Parameters
 
-Master gain; tremolo detection (window, min repeats, on/off); timing (jitter, breathing depth
-and rate); dynamics (velocity curve, variation); length variation; articulation velocity bands
-(picked / tremolo); reproducibility (global seed, instance seed); look-ahead.
+Master gain; tremolo (enable, detection window, capture trills); output enable; look-ahead.
 
 ## License
 
