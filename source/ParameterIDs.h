@@ -161,8 +161,15 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
     layout.add(std::make_unique<AudioParameterInt>(
         ParameterID{instanceSeed, 1}, "Instance Seed", 0, 1000000, 0));
 
+    // Look-ahead is a fixed output shift reported as plugin latency. It is NOT needed for tremolo or
+    // trill detection (that uses the detection window), it only gives headroom so the Pro timing
+    // humanization can nudge a note earlier than written. A host that compensates plugin latency
+    // cancels the shift; MuseScore does not support VST3 latency yet
+    // (https://github.com/musescore/MuseScore/issues/34388), so any non-zero value there just delays
+    // the audio with no benefit. Default 0. Revisit (a small non-zero default for symmetric timing
+    // jitter) once that MuseScore issue is fixed. See specs/lookahead-latency.md.
     layout.add(std::make_unique<AudioParameterFloat>(
-        ParameterID{lookaheadMs, 1}, "Look-ahead", NormalisableRange<float>(0.0f, 60.0f), 12.0f));
+        ParameterID{lookaheadMs, 1}, "Look-ahead", NormalisableRange<float>(0.0f, 60.0f), 0.0f));
 
     return layout;
 }
