@@ -110,7 +110,7 @@ if(HVST_BUILD_PLUGIN)
         else()
             target_sources(${target} PRIVATE
                 source/core/NeutralVariationSource.cpp
-                source/FreeEditor.cpp)
+                source/Editor.cpp)
         endif()
         target_include_directories(${target} PRIVATE source)
         target_compile_definitions(${target}

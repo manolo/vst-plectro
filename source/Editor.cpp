@@ -1,4 +1,4 @@
-#include "FreeEditor.h"
+#include "Editor.h"
 #include "EditorSupport.h"
 #include "ParameterIDs.h"
 #include "Edition.h"
@@ -15,7 +15,7 @@ using palette::text;
 } // namespace
 // instrumentNameForBank + populateInstrumentBox are shared, see EditorSupport.
 
-FreeEditor::FreeEditor(PlectroProcessor& p)
+Editor::Editor(PlectroProcessor& p)
     : juce::AudioProcessorEditor(p), processor_(p)
 {
     setLookAndFeel(&lnf_);
@@ -104,7 +104,7 @@ FreeEditor::FreeEditor(PlectroProcessor& p)
     setSize(460, 278);
 }
 
-FreeEditor::~FreeEditor()
+Editor::~Editor()
 {
     windowSlider_.setLookAndFeel(nullptr);
     gainSlider_.setLookAndFeel(nullptr);
@@ -112,7 +112,7 @@ FreeEditor::~FreeEditor()
     setLookAndFeel(nullptr);
 }
 
-juce::Slider& FreeEditor::makeRotary(juce::Slider& s, juce::Label& l, const juce::String& name)
+juce::Slider& Editor::makeRotary(juce::Slider& s, juce::Label& l, const juce::String& name)
 {
     s.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     s.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 74, 13);
@@ -126,7 +126,7 @@ juce::Slider& FreeEditor::makeRotary(juce::Slider& s, juce::Label& l, const juce
     return s;
 }
 
-void FreeEditor::rebuildInstrumentList()
+void Editor::rebuildInstrumentList()
 {
     populateInstrumentBox(instrumentBox_, processor_.listPresets());
 
@@ -140,7 +140,7 @@ void FreeEditor::rebuildInstrumentList()
     }
 }
 
-void FreeEditor::instrumentChanged()
+void Editor::instrumentChanged()
 {
     const int id = instrumentBox_.getSelectedId();
     if (id <= 0)
@@ -150,7 +150,7 @@ void FreeEditor::instrumentChanged()
         param->setValueNotifyingHost(param->convertTo0to1(static_cast<float>(bank)));
 }
 
-void FreeEditor::updateEnablement()
+void Editor::updateEnablement()
 {
     const bool tremOn = tremEnableButton_.getToggleState();
     ksLed_.setEnabled(tremOn);
@@ -169,7 +169,7 @@ void FreeEditor::updateEnablement()
     repaint(); // section boxes are painted darker when disabled
 }
 
-void FreeEditor::resetToDefaults()
+void Editor::resetToDefaults()
 {
     for (auto* param : processor_.getParameters())
     {
@@ -183,7 +183,7 @@ void FreeEditor::resetToDefaults()
     updateEnablement();
 }
 
-void FreeEditor::resized()
+void Editor::resized()
 {
     auto area = getLocalBounds();
 
@@ -253,7 +253,7 @@ void FreeEditor::resized()
     }
 }
 
-void FreeEditor::paint(juce::Graphics& g)
+void Editor::paint(juce::Graphics& g)
 {
     // Diagonal background gradient: black over most of the dialog, ramping to a dark bluish violet
     // only near the bottom-right corner (the Alcala / tuna colours). The section boxes below are
@@ -281,7 +281,7 @@ void FreeEditor::paint(juce::Graphics& g)
     }
 }
 
-void FreeEditor::timerCallback()
+void Editor::timerCallback()
 {
     // Snap to the target once very close so an idle meter/LED settles instead of easing forever and
     // repainting 30x a second, which starves the tooltip timer.
@@ -323,7 +323,7 @@ void FreeEditor::timerCallback()
 
 juce::AudioProcessorEditor* makeEditor(PlectroProcessor& processor)
 {
-    return new FreeEditor(processor);
+    return new Editor(processor);
 }
 
 } // namespace plectro

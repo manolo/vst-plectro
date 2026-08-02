@@ -9,11 +9,11 @@ namespace plectro {
 
 // The free edition editor: instrument picker, tremolo section and output gain. No humanization
 // controls and no custom SoundFont loading, so it is a compact window and ships in the public repo.
-class FreeEditor : public juce::AudioProcessorEditor, private juce::Timer
+class Editor : public juce::AudioProcessorEditor, private juce::Timer
 {
 public:
-    explicit FreeEditor(PlectroProcessor& p);
-    ~FreeEditor() override;
+    explicit Editor(PlectroProcessor& p);
+    ~Editor() override;
 
     void resized() override;
     void paint(juce::Graphics&) override;
@@ -61,7 +61,7 @@ private:
     juce::TooltipWindow tooltip_ { this, 500 };
     juce::Rectangle<int> tremBox_, outBox_;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FreeEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Editor)
 };
 
 } // namespace plectro
