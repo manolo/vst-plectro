@@ -10,18 +10,17 @@ workflow stays in MuseScore: ordinary tremolo beams and ordinary ornaments, no v
 ## Tremolo, two techniques
 
 MuseScore renders a measured tremolo as a rapid burst of repeated note ons. Plectro turns that back
-into one sustained tremolo voice instead of a machine gun of retriggers, and it can decide when a
-note is a tremolo in **two** ways:
+into one sustained tremolo voice instead of a machine gun of retriggers, and it supports **two** ways
+to know a note is a tremolo:
 
-- **Keyswitch driven.** The patched MuseScore build advertises and sends a keyswitch per note (via
-  the VST3 `IKeyswitchController`), so the articulation is explicit and unambiguous.
-- **Automatic detection.** With a plain host, or before a keyswitch arrives, Plectro detects the
-  repeated note burst itself (within a configurable window) and collapses it into one tremolo.
-
-Both run today on purpose: the keyswitch path is the intended single source of truth, but a host
-side limit on how many keyswitch events a block can deliver can still drop events on dense passages.
-Until that keyswitch delivery issue is fixed, Plectro keeps both techniques so tremolo is reliable
-with or without the patched host.
+- **Automatic detection (today).** Plectro detects the repeated note burst itself, within a
+  configurable window, and collapses it into one tremolo. It needs no setup and works in any host,
+  so it is what drives tremolo today.
+- **Keyswitches (when MuseScore implements them).** Plectro already advertises its articulations as
+  VST3 keyswitches (`IKeyswitchController`), so a host can select the articulation explicitly and
+  unambiguously. MuseScore does not send keyswitches to instrument plugins yet: there is an open
+  request for it, not a shipped feature. When MuseScore implements that delivery, Plectro will use
+  the keyswitch path and automatic detection becomes the fallback.
 
 Because tremolo no longer has to be encoded in velocity, MuseScore hairpins and dynamics flow
 through as real loudness.
@@ -48,10 +47,10 @@ The bundled font ships **bandurria** and **laud**.
 
 ```
 MuseScore (normal tremolo beams + normal ornaments + normal dynamics)
-  -> note events (+ keyswitches when the patched host drives them)
+  -> note events (plus keyswitches once a host sends them)
   -> Plectro:
-       look-ahead buffer
-       -> articulation (keyswitch, or automatic tremolo/trill detection)
+       streaming buffer
+       -> articulation (automatic tremolo/trill detection, or a host keyswitch)
        -> note variation
        -> FluidSynth (the SoundFont: pick vs tremolo vs ...)
   -> audio -> host mixer
@@ -97,7 +96,7 @@ Copy the built bundle into the plugin folder:
 
 ## Parameters
 
-Master gain; tremolo (enable, detection window, capture trills); output enable; look-ahead.
+Master gain; tremolo (enable, detection window, capture trills); output enable.
 
 ## License
 
