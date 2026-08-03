@@ -29,7 +29,7 @@ repeated notes to a natural one.
 
 ## Usage
 
-![Plectro](images/plectro.png)
+<img src="images/plectro.png" alt="Plectro" width="346">
 
 - **Instrument selector** (top): pick the instrument bank; the reset button (top right) restores the defaults.
 - **Tremolo:** turns MuseScore's measured tremolo into one sustained voice. **Tremolo Window** sets how wide a repeated note burst still counts as one tremolo, and **tr** also captures trills and ornaments as a single tremolo. The **window** and **keyswitch** LEDs light for the source driving the current tremolo.
