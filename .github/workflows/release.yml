@@ -195,3 +195,91 @@ jobs:
             - Unpack and move `Plectro.vst3` to `~/.vst3/`
 
             Then restart your host.
+
+  windows:
+    name: Windows (x64)
+    runs-on: windows-2022
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg-cache
+          key: vcpkg-glib-x64-windows-v1
+
+      - name: Install glib (vcpkg)
+        shell: bash
+        run: |
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          "$VCPKG_INSTALLATION_ROOT/vcpkg" install glib:x64-windows
+
+      - name: Provide the SoundFont
+        shell: bash
+        env:
+          SF2_URL: ${{ secrets.PLECTRO_SF2_URL }}
+        run: |
+          mkdir -p sf2
+          if [ -f assets/Plectro.sf2 ]; then
+            cp assets/Plectro.sf2 sf2/Plectro.sf2
+          elif [ -n "$SF2_URL" ]; then
+            curl -fsSL "$SF2_URL" -o sf2/Plectro.sf2
+          else
+            echo "No SoundFont: commit assets/Plectro.sf2 or set the PLECTRO_SF2_URL secret." >&2
+            exit 1
+          fi
+
+      - name: Configure
+        shell: bash
+        run: >
+          cmake -B build
+          -DHVST_BUILD_TESTS=OFF
+          -DPLECTRO_MINIMAL_FLUIDSYNTH=ON
+          -DPLECTRO_BUNDLE_DEPS=ON
+          -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          -DVCPKG_TARGET_TRIPLET=x64-windows
+          -DPLECTRO_ASSETS_DIR=${{ github.workspace }}/sf2
+
+      - name: Build
+        shell: pwsh
+        # JUCE builds moduleinfo.json by loading the freshly built VST3, whose dependent DLLs
+        # (FluidSynth and glib) are not next to it yet, so they must be findable on PATH.
+        run: |
+          $env:PATH = "$PWD\build\_deps\fluidsynth-build\src\Release;$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin;$env:PATH"
+          cmake --build build --config Release --target plectro_VST3
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          $vst3 = (Get-ChildItem -Recurse -Directory -Filter 'Plectro.vst3' build | Select-Object -First 1).FullName
+          $libdir = Join-Path $vst3 'Contents\x86_64-win'
+          Copy-Item "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin\*.dll" $libdir -Force
+          Compress-Archive -Path $vst3 -DestinationPath "dist/Plectro-${{ github.ref_name }}-Windows-x64-VST3.zip" -Force
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plectro-windows
+          path: dist/*.zip
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          fail_on_unmatched_files: true
+          body: |
+            ## Plectro ${{ github.ref_name }} (Windows)
+
+            Windows x64 VST3. FluidSynth and glib are bundled next to the plugin, so no extra
+            packages are needed.
+
+            ### Install
+            - Unzip and move the `Plectro.vst3` folder to `%COMMONPROGRAMFILES%\VST3\`
+
+            Then restart your host.
