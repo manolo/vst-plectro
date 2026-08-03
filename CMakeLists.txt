@@ -10,7 +10,7 @@ option(HVST_BUILD_TESTS  "Build the plectro_core unit tests" ON)
 # macOS only: embed FluidSynth and its dependencies into each bundle and rewrite them to @rpath so
 # the plugin loads on a clean machine with no Homebrew. Off by default so iterative dev builds stay
 # fast; turn on for release/CI (-DPLECTRO_BUNDLE_DEPS=ON).
-option(PLECTRO_BUNDLE_DEPS "Embed FluidSynth + deps into the macOS bundles (portable)" OFF)
+option(PLECTRO_BUNDLE_DEPS "Embed FluidSynth + deps into the plugin bundles (macOS and Linux, portable)" OFF)
 # Build a minimal FluidSynth from source (no readline/libsndfile/audio drivers) instead of linking
 # Homebrew's. Removes the GPL-3 readline dependency and shrinks the bundle. Use for release builds.
 option(PLECTRO_MINIMAL_FLUIDSYNTH "Build a minimal FluidSynth from source" OFF)
@@ -176,6 +176,23 @@ if(HVST_BUILD_PLUGIN)
                         VERBATIM)
                 endif()
             endforeach()
+        elseif(UNIX AND NOT APPLE AND PLECTRO_BUNDLE_DEPS)
+            # Linux: there is no AU, only VST3. Copy the in tree FluidSynth next to the plugin .so,
+            # then bundle its glib dependency chain and set RPATH to $ORIGIN so the plugin loads
+            # without the user installing FluidSynth or glib.
+            if(TARGET ${target}_VST3)
+                if(PLECTRO_MINIMAL_FLUIDSYNTH)
+                    add_custom_command(TARGET ${target}_VST3 POST_BUILD
+                        COMMAND ${CMAKE_COMMAND} -E copy
+                                "$<TARGET_SONAME_FILE:libfluidsynth>"
+                                "$<TARGET_FILE_DIR:${target}_VST3>/"
+                        VERBATIM)
+                endif()
+                add_custom_command(TARGET ${target}_VST3 POST_BUILD
+                    COMMAND "${CMAKE_SOURCE_DIR}/scripts/bundle-linux-deps.sh"
+                            "$<TARGET_FILE_DIR:${target}_VST3>/../.."
+                    VERBATIM)
+            endif()
         endif()
     endfunction()
 
