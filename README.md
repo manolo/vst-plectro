@@ -44,11 +44,12 @@ to know a note is a tremolo:
 - **Automatic detection (today).** Plectro detects the repeated note burst itself, within a
   configurable window, and collapses it into one tremolo. It needs no setup and works in any host,
   so it is what drives tremolo today.
-- **Keyswitches (when MuseScore implements them).** Plectro already advertises its articulations as
-  VST3 keyswitches (`IKeyswitchController`), so a host can select the articulation explicitly and
-  unambiguously. MuseScore does not send keyswitches to instrument plugins yet: there is an open
-  request for it, not a shipped feature. When MuseScore implements that delivery, Plectro will use
-  the keyswitch path and automatic detection becomes the fallback.
+- **Keyswitches (the optimal path).** Plectro already advertises its articulations as VST3
+  keyswitches (`IKeyswitchController`), so a host can select the articulation explicitly and
+  unambiguously. MuseScore does not send keyswitches to instrument plugins in a released version yet;
+  the change is proposed upstream in
+  [muse_framework#183](https://github.com/musescore/muse_framework/pull/183). Once it ships, Plectro
+  uses the keyswitch path and automatic detection becomes the fallback.
 
 Because tremolo no longer has to be encoded in velocity, MuseScore hairpins and dynamics flow
 through as real loudness.
@@ -60,6 +61,25 @@ on a bandurria or laud sounds mechanical. With **Capture Trills** on, Plectro ke
 note and renders the ornament as a single sustained tremolo, so a trilled long note sounds like a
 tremolo roll on the written pitch instead of a stuttering two note trill. Turn it off to hear the
 ornament as written notes.
+
+## Full support in MuseScore
+
+Plectro runs in any VST3 / AU host today, and in MuseScore it plays out of the box through automatic
+detection. Two changes to MuseScore's audio framework remove the remaining workarounds and let it
+drive Plectro straight from the notation. Both are proposed upstream; until they ship in a MuseScore
+release, Plectro falls back to a less exact path:
+
+- **Keyswitch delivery** ([muse_framework#183](https://github.com/musescore/muse_framework/pull/183)):
+  MuseScore tells the plugin each note's articulation explicitly (pizzicato, tremolo, mute, harmonic,
+  legato) through `IKeyswitchController`, instead of Plectro inferring it from repeated note bursts.
+  Fallback: automatic detection, which cannot always tell an ornament from a tremolo.
+- **Layered articulation dynamics**
+  ([muse_framework#179](https://github.com/musescore/muse_framework/pull/179)): fixes slurred
+  tremolos and slurred grace notes playing back silently in MuseScore 5.0, so those passages sound at
+  their real dynamic. Without it the only workaround is to not slur them.
+
+Both changes are no-ops for other instruments and for the FluidSynth and MuseSampler backends. With
+them merged, MuseScore drives Plectro from ordinary notation with no hacks or workarounds.
 
 ## Sound
 
