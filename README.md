@@ -1,3 +1,6 @@
+
+
+
 # Plectro VST
 
 A VST3 / AudioUnit **instrument** for the Spanish plucked plectrum family ("pulso y pua":
@@ -7,19 +10,20 @@ instruments, **tremolo** and **trills**, sound like a real player instead of a s
 workflow stays in MuseScore: ordinary tremolo beams and ordinary ornaments, no velocity hacks.
 
 Getting a natural bandurria or laud tremolo in MuseScore used to be a chore. The previous approach,
-the [Pulso y Pua (Tremolo and SoundFont Manager)](https://musescore.org/en/project/pulso-y-pua-tremolo-and-soundfont-manager)
-plugin, batch edited the score: it encoded the tremolo in each note's MIDI velocity and disabled the
-playback of tied notes, dynamics, articulations, ornaments and hairpins that would otherwise break
-that velocity trick, and you had to run it again every time the music changed. Plectro needs none of
+the [Pulso y Pua](https://musescore.org/en/project/pulso-y-pua-tremolo-and-soundfont-manager)
+plugin had to encode the tremolo in each note's MIDI velocity and disable the
+playback of tremolo symbols, tied notes, dynamics, articulations, ornaments and dynamics that would break
+that velocity trick, and you had to run it again every time the music changed. Plectro VST3 needs none of
 that. It reads the notation live, so you keep your real dynamics and ornaments and never touch
 velocity.
 
 
 ## Demo
 
-DEMO_VIDEO_PLACEHOLDER
+https://github.com/user-attachments/assets/d7f77d2e-9ad2-49f1-9272-37fafd08bdf1
 
-It shows a staff switching from the Muse Sounds "Acoustic Steel Guitar" to Plectro's Bandurria and
+
+It shows a score switching staves from the Muse Sounds "Acoustic Steel Guitar" to Plectro's Bandurria and
 Laud: the sound changes to a real plucked instrument, and the tremolos change from a machine gun of
 repeated notes to a natural one.
 
