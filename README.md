@@ -27,6 +27,13 @@ It shows a score switching staves from the Muse Sounds "Acoustic Steel Guitar" t
 Laud: the sound changes to a real plucked instrument, and the tremolos change from a machine gun of
 repeated notes to a natural one.
 
+## Usage
+
+![Plectro](images/plectro.png)
+
+- **Instrument selector** (top): pick the instrument bank; the reset button (top right) restores the defaults.
+- **Tremolo:** turns MuseScore's measured tremolo into one sustained voice. **Tremolo Window** sets how wide a repeated note burst still counts as one tremolo, and **tr** also captures trills and ornaments as a single tremolo. The **window** and **keyswitch** LEDs light for the source driving the current tremolo.
+- **Output:** the output stage. **Gain** sets the level, with the peak meter below it.
 
 ## Tremolo, two techniques
 

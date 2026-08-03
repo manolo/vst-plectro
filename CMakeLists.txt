@@ -193,6 +193,18 @@ if(HVST_BUILD_PLUGIN)
                             "$<TARGET_FILE_DIR:${target}_VST3>/../.."
                     VERBATIM)
             endif()
+        elseif(WIN32 AND PLECTRO_BUNDLE_DEPS)
+            # Windows: no AU, only VST3. Copy FluidSynth and its glib DLL dependencies next to the
+            # plugin so it loads without the user installing them (Windows resolves DLLs from the
+            # module's own directory). TARGET_RUNTIME_DLLS resolves the transitive shared deps.
+            if(TARGET ${target}_VST3)
+                add_custom_command(TARGET ${target}_VST3 POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                            "$<TARGET_RUNTIME_DLLS:${target}_VST3>"
+                            "$<TARGET_FILE_DIR:${target}_VST3>"
+                    COMMAND_EXPAND_LISTS
+                    VERBATIM)
+            endif()
         endif()
     endfunction()
 
