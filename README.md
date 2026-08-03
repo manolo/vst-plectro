@@ -17,7 +17,7 @@ velocity.
 
 ## Demo
 
-<video src="https://github.com/manolo/vst-plectro/raw/main/docs/plectro-demo.mp4" controls width="640"></video>
+DEMO_VIDEO_PLACEHOLDER
 
 It shows a staff switching from the Muse Sounds "Acoustic Steel Guitar" to Plectro's Bandurria and
 Laud: the sound changes to a real plucked instrument, and the tremolos change from a machine gun of
