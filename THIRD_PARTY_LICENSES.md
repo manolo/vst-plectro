@@ -11,16 +11,21 @@ or links the following third party components. Their licenses apply to those com
   obligations (for example JUCE may require a "Made with JUCE" splash and has terms on source
   disclosure). Confirm the current JUCE free tier terms before a public release.
 
-## Bundled native libraries (macOS)
+## Bundled native libraries
 
-Shipped inside the plugin bundle under `Contents/Frameworks`, linked dynamically. The release build
-(`PLECTRO_MINIMAL_FLUIDSYNTH=ON`) builds a minimal FluidSynth so only these ship:
+Shipped alongside the plugin and linked dynamically, following each platform's convention: on macOS
+inside the bundle under `Contents/Frameworks`, on Linux next to the `.so` (with `RPATH=$ORIGIN`),
+and on Windows next to the `.vst3` module. The release build (`PLECTRO_MINIMAL_FLUIDSYNTH=ON`)
+builds a minimal FluidSynth so only these ship:
 
 - **FluidSynth** (https://www.fluidsynth.org) — LGPL 2.1 or later. Built from source with readline,
   libsndfile and the audio drivers disabled, so those are NOT bundled.
-- **GLib** (libglib-2.0, libgthread-2.0) — LGPL 2.1 or later.
+- **GLib** (libglib-2.0, libgthread-2.0, libgobject-2.0) — LGPL 2.1 or later.
 - **gettext runtime** (libintl) — LGPL 2.1 or later.
 - **PCRE2** (libpcre2-8) — BSD 3 Clause.
+
+The exact file names vary by platform (`.dylib` on macOS, `.so.N` on Linux, `.dll` on Windows), and
+Windows may also ship GLib's own runtime dependencies (for example libiconv) as separate DLLs.
 
 LGPL compliance note: these libraries are shipped as unmodified shared libraries and linked
 dynamically, which lets a user replace them. That is the LGPL compliant way to bundle them and
