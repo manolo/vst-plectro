@@ -1,6 +1,3 @@
-
-
-
 # Plectro VST
 
 A VST3 / AudioUnit **instrument** for the Spanish plucked plectrum family ("pulso y pua":
