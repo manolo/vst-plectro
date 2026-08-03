@@ -15,6 +15,14 @@ that. It reads the notation live, so you keep your real dynamics and ornaments a
 velocity.
 
 
+## Demo
+
+<video src="docs/plectro-demo.mp4" controls width="640"><a href="docs/plectro-demo.mp4">Watch the demo video</a></video>
+
+It shows a staff switching from the Muse Sounds "Acoustic Steel Guitar" to Plectro's Bandurria and
+Laud: the sound changes to a real plucked instrument, and the tremolos change from a machine gun of
+repeated notes to a natural one.
+
 ## Tremolo, two techniques
 
 MuseScore renders a measured tremolo as a rapid burst of repeated note ons. Plectro turns that back

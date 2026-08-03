@@ -101,7 +101,7 @@ Editor::Editor(PlectroProcessor& p)
     startTimerHz(30); // poll tremolo activity for the indicator LEDs
 
     setResizable(false, false);
-    setSize(460, 278);
+    setSize(340, 230);
 }
 
 Editor::~Editor()
@@ -189,14 +189,15 @@ void Editor::resized()
 
     // Copyright and version, pinned near the very bottom with a small padding (less than the side
     // margin) so it sits closer to the edge.
-    footerLabel_.setBounds(area.removeFromBottom(18).reduced(14, 3));
-    area = area.reduced(14);
+    footerLabel_.setBounds(area.removeFromBottom(16).reduced(10, 3));
+    area = area.reduced(10);
 
-    // Header at the very top: title, instrument selector, reset far right.
-    auto header = area.removeFromTop(34);
+    // Header at the very top: title, instrument selector, reset far right. The title is kept narrow
+    // so the instrument selector gets the width it needs (its text was being squeezed).
+    auto header = area.removeFromTop(26);
     resetButton_.setBounds(header.removeFromRight(36).withSizeKeepingCentre(36, 32));
     header.removeFromRight(8);
-    titleLabel_.setBounds(header.removeFromLeft(150));
+    titleLabel_.setBounds(header.removeFromLeft(112));
     header.removeFromLeft(6);
     instrumentBox_.setBounds(header.withSizeKeepingCentre(header.getWidth(), 26));
 
@@ -204,7 +205,7 @@ void Editor::resized()
     // before the host sends the name) so the sections below do not jump up on first open and then
     // drop when the name arrives.
     area.removeFromTop(2);
-    channelInfoLabel_.setBounds(area.removeFromTop(14));
+    channelInfoLabel_.setBounds(area.removeFromTop(10));
     area.removeFromTop(2);
 
     auto place = [](juce::Rectangle<int> cell, juce::Slider& s, juce::Label& l) {
@@ -213,11 +214,11 @@ void Editor::resized()
         s.setBounds(cell);
     };
 
-    area.removeFromTop(12);
+    area.removeFromTop(4);
 
     const int gap = 10;
-    const int cellH = 128;
-    auto botTitle = area.removeFromTop(20);
+    const int cellH = 116;
+    auto botTitle = area.removeFromTop(18);
     auto bot = area.removeFromTop(cellH + 16);
     // Tremolo and Output share the width evenly (output has only gain here).
     const int half = (bot.getWidth() - gap) / 2;
