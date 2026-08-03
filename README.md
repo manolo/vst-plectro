@@ -17,12 +17,16 @@ velocity.
 
 ## Demo
 
+
+
 https://github.com/user-attachments/assets/d7f77d2e-9ad2-49f1-9272-37fafd08bdf1
+
 
 
 It shows a score switching staves from the Muse Sounds "Acoustic Steel Guitar" to Plectro's Bandurria and
 Laud: the sound changes to a real plucked instrument, and the tremolos change from a machine gun of
 repeated notes to a natural one.
+
 
 ## Tremolo, two techniques
 
