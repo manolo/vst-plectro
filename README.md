@@ -156,9 +156,10 @@ into your plugin folder, then restart your host:
 The bundles are **not code signed or notarized**, so your system blocks them the first time and you
 have to allow them by hand, once:
 
-- **macOS:** right click the plugin in Finder and choose **Open**, or clear the quarantine flag from a
-  terminal with `xattr -dr com.apple.quarantine "<the plugin bundle>"`. If your host still does not
-  list it, allow it in **System Settings > Privacy & Security**.
+- **macOS:** opening a plugin from Finder does not clear its quarantine, so after copying the bundles
+  into the folders above, and before you open your host, clear the flag from a terminal with
+  `sudo xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/Plectro*.vst3 ~/Library/Audio/Plug-Ins/Components/Plectro*.component`.
+  If your host still does not list it, allow it in **System Settings > Privacy & Security**.
 - **Windows:** on the SmartScreen warning choose **More info > Run anyway**.
 
 ## Use in MuseScore 4
@@ -193,8 +194,8 @@ ctest --test-dir build --output-on-failure
 ```
 
 To run a local build, copy the freshly built bundle from `build/` into the plugin folder listed
-under Install. A bundle you built yourself is not quarantined, so the unsigned first open steps above
-do not apply to it.
+under Install. A bundle you built yourself is not quarantined, so the quarantine step above does not
+apply to it.
 
 ## License
 
