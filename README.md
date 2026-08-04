@@ -23,40 +23,40 @@ https://github.com/user-attachments/assets/d7f77d2e-9ad2-49f1-9272-37fafd08bdf1
 
 
 
-It shows a score switching staves from the Muse Sounds "Acoustic Steel Guitar" to Plectro's Bandurria and
-Laud: the sound changes to a real plucked instrument, and the tremolos change from a machine gun of
-repeated notes to a natural one.
+The demo is recorded in MuseScore, switching a score's staves from the Muse Sounds "Acoustic Steel
+Guitar" to Plectro's Bandurria and Laud: the sound changes to a real plucked instrument, and the
+tremolos change from a machine gun of repeated notes to a natural one. In any other VST3 / AU host
+the process is similar: load Plectro on the track and write ordinary tremolos.
 
 ## Usage
 
 <img src="images/plectro.png" alt="Plectro" width="346">
 
 - **Instrument selector** (top): pick the instrument bank; the reset button (top right) restores the defaults.
-- **Tremolo:** turns MuseScore's measured tremolo into one sustained voice. **Tremolo Window** sets how wide a repeated note burst still counts as one tremolo, and **tr** also captures trills and ornaments as a single tremolo. The **window** and **keyswitch** LEDs light for the source driving the current tremolo.
+- **Tremolo:** turns the host's measured tremolo into one sustained voice. **Tremolo Window** sets how wide a repeated note burst still counts as one tremolo, and **tr** also captures trills and ornaments as a single tremolo. The **window** and **keyswitch** LEDs light for the source driving the current tremolo.
 - **Output:** the output stage. **Gain** sets the level, with the peak meter below it.
 
 ## Tremolo, two techniques
 
-MuseScore renders a measured tremolo as a rapid burst of repeated note ons. Plectro turns that back
-into one sustained tremolo voice instead of a machine gun of retriggers, and it supports **two** ways
-to know a note is a tremolo:
+A notation host renders a measured tremolo as a rapid burst of repeated note ons. Plectro turns that
+back into one sustained tremolo voice instead of a machine gun of retriggers, and it supports **two**
+ways to know a note is a tremolo, using whichever the host allows:
 
-- **Automatic detection (today).** Plectro detects the repeated note burst itself, within a
-  configurable window, and collapses it into one tremolo. It needs no setup and works in any host,
-  so it is what drives tremolo today.
-- **Keyswitches (the optimal path).** Plectro already advertises its articulations as VST3
-  keyswitches (`IKeyswitchController`), so a host can select the articulation explicitly and
-  unambiguously. MuseScore does not send keyswitches to instrument plugins in a released version yet;
-  the change is proposed upstream in
-  [muse_framework#183](https://github.com/musescore/muse_framework/pull/183). Once it ships, Plectro
-  uses the keyswitch path and automatic detection becomes the fallback.
+- **Automatic detection.** Plectro detects the repeated note burst itself, within a configurable
+  window, and collapses it into one tremolo. It needs no setup and works in any host, so it is the
+  fallback wherever a host does not send keyswitches.
+- **Keyswitches (the optimal path).** Plectro advertises its articulations as VST3 keyswitches
+  (`IKeyswitchController`), so a host that supports them selects the articulation explicitly and
+  unambiguously, and automatic detection is not needed. Not every host sends keyswitches to
+  instrument plugins: MuseScore does not in a released version yet, with the change proposed upstream
+  in [muse_framework#183](https://github.com/musescore/muse_framework/pull/183).
 
-Because tremolo no longer has to be encoded in velocity, MuseScore hairpins and dynamics flow
+Because tremolo no longer has to be encoded in velocity, the host's hairpins and dynamics flow
 through as real loudness.
 
 ## Trills and ornaments
 
-MuseScore also expands a trill (and mordents and turns) into a rapid alternation of note ons, which
+A host also expands a trill (and mordents and turns) into a rapid alternation of note ons, which
 on a bandurria or laud sounds mechanical. With **Capture Trills** on, Plectro keeps only the main
 note and renders the ornament as a single sustained tremolo, so a trilled long note sounds like a
 tremolo roll on the written pitch instead of a stuttering two note trill. Turn it off to hear the
