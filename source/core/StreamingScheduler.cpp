@@ -239,6 +239,14 @@ void StreamingScheduler::advance(std::int64_t latestInput, std::vector<VoiceComm
                 progress = true;
                 continue;
             }
+            // A host with a tremolo channel (MuseScore's "tremolo channel when available") does not
+            // expand a stem tremolo into repeated strokes: it sends one sustained note stamped
+            // Tremolo whose only end is its note-off. With no continuation strokes the timeout below
+            // would fire a beat in and cut the note off mid-span, so for an explicit tremolo wait
+            // until that note-off has arrived before closing. The Auto detector has no such boundary
+            // (the gesture ends when strokes simply stop) and keeps using the timeout.
+            if (st.articulation == Articulation::Tremolo && st.lastOffSeen < 0)
+                continue;
             const std::int64_t closeTol = tremTol(st);
             if (latestInput >= st.lastOn + closeTol)
             {

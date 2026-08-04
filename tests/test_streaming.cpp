@@ -196,6 +196,41 @@ TEST_CASE("Explicit tremolo sustains one voice even when strokes are wider than 
     REQUIRE(countType(out, VoiceCommandType::SetGain) >= 4);   // strokes follow the dynamic
 }
 
+TEST_CASE("Explicit tremolo delivered as one sustained note holds until its real note-off",
+          "[streaming][articulation]")
+{
+    // A host with a tremolo channel (MuseScore 4.5+, "tremolo channel when available") does not
+    // expand a stem tremolo into rapid repeated notes: it sends ONE sustained note stamped Tremolo
+    // that spans the whole notated duration. The note-off only arrives once playback reaches it, so
+    // for most of the note the scheduler sees a single onset and no further strokes. It must sustain
+    // the tremolo for the full duration, not close it a beat in for lack of a "second stroke".
+    StreamingScheduler s;
+    auto p = makeParams();
+    p.lookaheadSamples = 480;
+    p.beatSamples = 24000;          // 120 bpm: one beat = 24000 samples
+    s.setParams(p);
+
+    const std::int64_t noteEnd = 96000; // a whole note at 120 bpm (four beats)
+    s.push({0, 67, 90, true, 1, Articulation::Tremolo});
+
+    std::vector<VoiceCommand> out;
+    // Blocks advance while the note sounds; the note-off is not yet known to the host.
+    for (std::int64_t t = 4096; t < noteEnd; t += 4096)
+        s.advance(t, out);
+    // Playback reaches the end: now the note-off is delivered.
+    s.push({noteEnd, 67, 0, false, 1, Articulation::Tremolo});
+    s.advance(noteEnd + 24000, out);
+
+    REQUIRE(countType(out, VoiceCommandType::NoteOn) == 1);
+    REQUIRE(countType(out, VoiceCommandType::NoteOff) == 1);
+    std::int64_t off = -1;
+    for (const auto& c : out)
+        if (c.type == VoiceCommandType::NoteOff)
+            off = c.targetSample;
+    // The tremolo must ring until (about) its real end, not be cut off ~one beat in.
+    REQUIRE(off >= noteEnd - 4096);
+}
+
 TEST_CASE("Explicit tremolo picks P+T when standalone and Trem when legato", "[streaming][articulation]")
 {
     auto firstTremPreset = [](bool legato) {
