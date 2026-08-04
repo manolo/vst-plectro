@@ -1,0 +1,262 @@
+{
+  "com.steinberg.doric.libraryexport": {
+    "expressionMaps": {
+      "expressionMap": [
+        {
+          "name": "Plectro",
+          "id": "plectro.expressionmap",
+          "description": "Plectro articulation keyswitches by Do2tis.",
+          "switches": [
+            {
+              "techniques": [
+                {
+                  "type": "kAddTechnique",
+                  "id": "pt.natural"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "kNoteOn",
+                  "data": {
+                    "note": 0,
+                    "velocity": 127,
+                    "channel": 0
+                  }
+                }
+              ],
+              "name": "Standard"
+            },
+            {
+              "techniques": [
+                {
+                  "type": "kAddTechnique",
+                  "id": "pt.pizzicato"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "kNoteOn",
+                  "data": {
+                    "note": 1,
+                    "velocity": 127,
+                    "channel": 0
+                  }
+                }
+              ],
+              "name": "Pizzicato"
+            },
+            {
+              "techniques": [
+                {
+                  "type": "kAddTechnique",
+                  "id": "pt.snappizzicato"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "kNoteOn",
+                  "data": {
+                    "note": 2,
+                    "velocity": 127,
+                    "channel": 0
+                  }
+                }
+              ],
+              "name": "SnapPizzicato"
+            },
+            {
+              "techniques": [
+                {
+                  "type": "kAddTechnique",
+                  "id": "pt.pizzicato"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "kNoteOn",
+                  "data": {
+                    "note": 3,
+                    "velocity": 127,
+                    "channel": 0
+                  }
+                }
+              ],
+              "name": "RandomPizzicato"
+            },
+            {
+              "techniques": [
+                {
+                  "type": "kAddTechnique",
+                  "id": "pt.harmonic"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "kNoteOn",
+                  "data": {
+                    "note": 4,
+                    "velocity": 127,
+                    "channel": 0
+                  }
+                }
+              ],
+              "name": "Harmonic"
+            },
+            {
+              "techniques": [
+                {
+                  "type": "kAddTechnique",
+                  "id": "pt.mute"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "kNoteOn",
+                  "data": {
+                    "note": 5,
+                    "velocity": 127,
+                    "channel": 0
+                  }
+                }
+              ],
+              "name": "Mute"
+            },
+            {
+              "techniques": [
+                {
+                  "type": "kAddTechnique",
+                  "id": "pt.mute"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "kNoteOn",
+                  "data": {
+                    "note": 6,
+                    "velocity": 127,
+                    "channel": 0
+                  }
+                }
+              ],
+              "name": "PalmMute"
+            },
+            {
+              "techniques": [
+                {
+                  "type": "kAddTechnique",
+                  "id": "pt.tremolo"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "kNoteOn",
+                  "data": {
+                    "note": 7,
+                    "velocity": 127,
+                    "channel": 0
+                  }
+                }
+              ],
+              "name": "Tremolo8th"
+            },
+            {
+              "techniques": [
+                {
+                  "type": "kAddTechnique",
+                  "id": "pt.tremolo"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "kNoteOn",
+                  "data": {
+                    "note": 8,
+                    "velocity": 127,
+                    "channel": 0
+                  }
+                }
+              ],
+              "name": "Tremolo16th"
+            },
+            {
+              "techniques": [
+                {
+                  "type": "kAddTechnique",
+                  "id": "pt.tremolo"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "kNoteOn",
+                  "data": {
+                    "note": 9,
+                    "velocity": 127,
+                    "channel": 0
+                  }
+                }
+              ],
+              "name": "Tremolo32nd"
+            },
+            {
+              "techniques": [
+                {
+                  "type": "kAddTechnique",
+                  "id": "pt.tremolo"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "kNoteOn",
+                  "data": {
+                    "note": 10,
+                    "velocity": 127,
+                    "channel": 0
+                  }
+                }
+              ],
+              "name": "Tremolo64th"
+            },
+            {
+              "techniques": [
+                {
+                  "type": "kAddTechnique",
+                  "id": "pt.trill"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "kNoteOn",
+                  "data": {
+                    "note": 11,
+                    "velocity": 127,
+                    "channel": 0
+                  }
+                }
+              ],
+              "name": "Trill"
+            },
+            {
+              "techniques": [
+                {
+                  "type": "kAddTechnique",
+                  "id": "pt.legato"
+                }
+              ],
+              "actions": [
+                {
+                  "type": "kNoteOn",
+                  "data": {
+                    "note": 12,
+                    "velocity": 127,
+                    "channel": 0
+                  }
+                }
+              ],
+              "name": "Legato"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
