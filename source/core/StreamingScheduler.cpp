@@ -217,16 +217,25 @@ void StreamingScheduler::advance(std::int64_t latestInput, std::vector<VoiceComm
                 // window, so slow-tempo strokes still continue the same voice.
                 const std::int64_t gap = e.sample - st.lastOn;
                 const std::int64_t tol = tremTol(st);
-                if (gap <= tol)
+                // An explicit tremolo NoteOn always continues the current span: a genuinely separate
+                // span is marked by a re-sent keyswitch (forceCloseAll -> Idle), so any NoteOn that
+                // reaches us here belongs to the same gesture. This covers both a stroke (small gap)
+                // and a tremolo tied to a tremolo, where the tremolo-channel host ends the first note
+                // and re-attacks the second at the tie point within one span (no keyswitch). The Auto
+                // detector still ends its gesture by the gap window.
+                const bool continueSpan = st.articulation == Articulation::Tremolo || gap <= tol;
+                if (continueSpan)
                 {
-                    // Continuation stroke: the tremolo loop sustains; follow the dynamic and
-                    // let the pitch drift slowly around the note's centre.
+                    // Continuation: the tremolo loop sustains; follow the dynamic and let the pitch
+                    // drift slowly around the note's centre.
                     const std::int64_t whenC = at(e.sample, st.jitter);
                     out.push_back({whenC, VoiceCommandType::SetGain, st.tremVoice, key,
                                    0, 0, 0, variation_->applyGain(params_, e.velocity, st.variation)});
                     emitPitch(st.tremVoice, key, whenC, st.baseDetune + static_cast<float>(variation_->pitchDrift(params_, e.sample)));
-                    st.lastInterval = gap;
+                    if (gap <= tol)
+                        st.lastInterval = gap; // track stroke spacing; a wide tie gap must not poison it
                     st.lastOn = e.sample;
+                    st.lastOffSeen = -1;       // the span continues; the previous note-off was not its end
                     dq.pop_front();
                     progress = true;
                     continue;
@@ -235,6 +244,34 @@ void StreamingScheduler::advance(std::int64_t latestInput, std::vector<VoiceComm
                 emitOff(st.tremVoice, key, at(off + overlap, st.jitter));
                 if (st.pickVoice != st.tremVoice)
                     emitOff(st.pickVoice, key, at(off + overlap, st.jitter)); // release the lingering pick
+                st.phase = Phase::Idle;
+                progress = true;
+                continue;
+            }
+            // A host with a tremolo channel (MuseScore's "tremolo channel when available") does not
+            // expand a stem tremolo into repeated strokes: it sends one sustained note stamped
+            // Tremolo whose only end is its note-off. Two things follow for an explicit tremolo:
+            //  - while no note-off is known, never close (the timeout below would cut a long note a
+            //    beat in, mid-span);
+            //  - once the note-off arrives, still do not close immediately. A tremolo tied to another
+            //    tremolo continues in the SAME span: the host re-attacks the next tied note WITHOUT
+            //    re-sending the keyswitch, and that note-on lands a few hundred samples after the
+            //    note-off, in the following block. Wait a short grace past the note-off for it; if it
+            //    comes it is absorbed as a continuation above, otherwise close at the real note-off.
+            //    (A genuinely separate span re-sends the keyswitch, which force-closes us at once, so
+            //    the grace never merges distinct spans.) The emitted note-off stays anchored to the
+            //    real note-off sample, so the grace does not lengthen the note, only the state.
+            // The Auto detector has no such note-off boundary (its gesture ends when strokes simply
+            // stop) and keeps using the onset timeout below.
+            if (st.articulation == Articulation::Tremolo)
+            {
+                if (st.lastOffSeen < 0)
+                    continue;                                 // note still sounding; wait for its note-off
+                if (latestInput < st.lastOffSeen + W)
+                    continue;                                 // within the tie grace; a continuation may still arrive
+                emitOff(st.tremVoice, key, at(st.lastOffSeen + overlap, st.jitter));
+                if (st.pickVoice != st.tremVoice)
+                    emitOff(st.pickVoice, key, at(st.lastOffSeen + overlap, st.jitter)); // release the lingering pick
                 st.phase = Phase::Idle;
                 progress = true;
                 continue;

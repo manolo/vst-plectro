@@ -32,6 +32,26 @@ inline bool hostQueriedKeyswitches()
 
 namespace plectro {
 
+// Map a keyswitch behavior to the VST3 keyswitch type advertised to auto-discovery hosts (Cubase,
+// Dorico). A latching timbre is a "press before note on" switch; a held modifier or span (Legato)
+// is a key kept pressed across its range, so those hosts hold it for the passage instead of tapping
+// it once. MuseScore ignores this field entirely (it classifies ranged articulations itself), so
+// this only informs third-party hosts and never affects the MuseScore path.
+inline Steinberg::Vst::KeyswitchTypeID keyswitchTypeIdForBehavior(KeyswitchBehavior behavior)
+{
+    using namespace Steinberg::Vst;
+    switch (behavior)
+    {
+        case KeyswitchBehavior::Momentary:
+        case KeyswitchBehavior::Span:
+        case KeyswitchBehavior::Modifier:
+            return kKeyRangeTypeID;    // key held down across its range
+        case KeyswitchBehavior::Latching:
+            break;
+    }
+    return kNoteOnKeyswitchTypeID;      // press before the note on
+}
+
 // VST3 extension that exposes keyswitch information to hosts like Cubase and Dorico.
 // This allows DAWs to automatically discover articulations and create expression maps.
 class KeyswitchControllerExtension : public Steinberg::Vst::IKeyswitchController
@@ -63,19 +83,21 @@ public:
             return kResultFalse;
 
         // Titles are the exact MuseScore articulation names, so the host matches them without any
-        // heuristic. Every keyswitch is a single note, "press before noteOn" type.
+        // heuristic. The type comes from the layout behavior: latching timbres are press-before
+        // switches, the Legato modifier is a held key-range.
         const KeyswitchDef& ks = kKeyswitchLayout[static_cast<std::size_t>(keySwitchIndex)];
 
-        info.typeId = kNoteOnKeyswitchTypeID;
+        info.typeId = keyswitchTypeIdForBehavior(ks.behavior);
         info.keyswitchMin = ks.note;
         info.keyswitchMax = ks.note;
         info.keyRemapped = -1;  // no remapping
         info.unitId = -1;       // no unit
         info.flags = 0;
 
-        // Convert to UTF-16 (VST3 requirement)
+        // Convert to UTF-16 (VST3 requirement). The title is the exact MuseScore name the host
+        // matches on; the shortTitle is a compact label hosts show in tight UI (from the layout).
         juce::String(ks.name).copyToUTF16(reinterpret_cast<juce::CharPointer_UTF16::CharType*>(info.title), 128);
-        juce::String(ks.name).copyToUTF16(reinterpret_cast<juce::CharPointer_UTF16::CharType*>(info.shortTitle), 128);
+        juce::String(ks.shortTitle).copyToUTF16(reinterpret_cast<juce::CharPointer_UTF16::CharType*>(info.shortTitle), 128);
 
         return kResultTrue;
     }

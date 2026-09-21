@@ -1,0 +1,191 @@
+{
+  "name": "Plectro",
+  "vendor": "Do2tis",
+  "version": 1,
+  "keyswitchZone": {
+    "base": 0,
+    "top": 12
+  },
+  "articulations": [
+    {
+      "note": 0,
+      "id": "standard",
+      "name": "Standard",
+      "shortTitle": "Std",
+      "articulation": "Picked",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": [
+        "Legato"
+      ]
+    },
+    {
+      "note": 1,
+      "id": "pizzicato",
+      "name": "Pizzicato",
+      "shortTitle": "Pizz",
+      "articulation": "Pizzicato",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": [
+        "Legato"
+      ]
+    },
+    {
+      "note": 2,
+      "id": "snap_pizzicato",
+      "name": "SnapPizzicato",
+      "shortTitle": "Snap",
+      "articulation": "Pizzicato",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": [
+        "Legato"
+      ]
+    },
+    {
+      "note": 3,
+      "id": "random_pizzicato",
+      "name": "RandomPizzicato",
+      "shortTitle": "RndPz",
+      "articulation": "Pizzicato",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": [
+        "Legato"
+      ]
+    },
+    {
+      "note": 4,
+      "id": "harmonic",
+      "name": "Harmonic",
+      "shortTitle": "Harm",
+      "articulation": "Harmonic",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": [
+        "Legato"
+      ]
+    },
+    {
+      "note": 5,
+      "id": "mute",
+      "name": "Mute",
+      "shortTitle": "Mute",
+      "articulation": "Mute",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": [
+        "Legato"
+      ]
+    },
+    {
+      "note": 6,
+      "id": "palm_mute",
+      "name": "PalmMute",
+      "shortTitle": "PMute",
+      "articulation": "Mute",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": [
+        "Legato"
+      ]
+    },
+    {
+      "note": 7,
+      "id": "tremolo_8th",
+      "name": "Tremolo8th",
+      "shortTitle": "Trem8",
+      "articulation": "Tremolo",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": [
+        "Legato"
+      ]
+    },
+    {
+      "note": 8,
+      "id": "tremolo_16th",
+      "name": "Tremolo16th",
+      "shortTitle": "Trm16",
+      "articulation": "Tremolo",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": [
+        "Legato"
+      ]
+    },
+    {
+      "note": 9,
+      "id": "tremolo_32nd",
+      "name": "Tremolo32nd",
+      "shortTitle": "Trm32",
+      "articulation": "Tremolo",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": [
+        "Legato"
+      ]
+    },
+    {
+      "note": 10,
+      "id": "tremolo_64th",
+      "name": "Tremolo64th",
+      "shortTitle": "Trm64",
+      "articulation": "Tremolo",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": [
+        "Legato"
+      ]
+    },
+    {
+      "note": 11,
+      "id": "trill",
+      "name": "Trill",
+      "shortTitle": "Trill",
+      "articulation": "Tremolo",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": [
+        "Legato"
+      ]
+    },
+    {
+      "note": 12,
+      "id": "legato",
+      "name": "Legato",
+      "shortTitle": "Leg",
+      "articulation": "Picked",
+      "behavior": "Modifier",
+      "needsNoteOff": true,
+      "category": "complementary",
+      "canCombineWith": [
+        "Standard",
+        "Pizzicato",
+        "SnapPizzicato",
+        "RandomPizzicato",
+        "Harmonic",
+        "Mute",
+        "PalmMute",
+        "Tremolo8th",
+        "Tremolo16th",
+        "Tremolo32nd",
+        "Tremolo64th",
+        "Trill"
+      ]
+    }
+  ]
+}

@@ -68,13 +68,16 @@ PlaybackParams PlectroProcessor::readParams() const
     p.sampleRate = sampleRate_;
     p.tremoloOn = apvts_.getRawParameterValue(pid::tremoloOn)->load() > 0.5f;
     // Auto: the rhythmic detector runs only when the host does NOT drive articulations by keyswitch.
-    // We stop auto-detecting once a keyswitch has been seen this session, and also as soon as a
-    // keyswitch-aware host has queried our IKeyswitchController (MuseScore does at load): such a
-    // host notates tremolo explicitly, so the detector is redundant and would otherwise misfire on
-    // ornament expansions (trills, mordents, turns) that arrive as rapid repeated notes.
-    p.enableDetection = p.tremoloOn
-                        && !keyswitchSeen_.load(std::memory_order_relaxed)
-                        && !hostQueriedKeyswitches();
+    // We stop auto-detecting once a keyswitch has been seen this session, and also right after a
+    // keyswitch-aware host queries our IKeyswitchController (MuseScore does at load): such a host
+    // notates tremolo explicitly, so the detector is redundant and would otherwise misfire on
+    // ornament expansions (trills, mordents, turns) that arrive as rapid repeated notes. The query
+    // suppression is BOUNDED (shouldAutoDetect): a host that queries but never sends a keyswitch
+    // gets auto detection back after a few notes, so a bare query does not disable it forever.
+    p.enableDetection = shouldAutoDetect(p.tremoloOn,
+                                         keyswitchSeen_.load(std::memory_order_relaxed),
+                                         hostQueriedKeyswitches(),
+                                         musicalNotesSinceStart_.load(std::memory_order_relaxed));
     p.detectWindowMs = apvts_.getRawParameterValue(pid::detectWindowMs)->load();
     p.minRepeats = static_cast<int>(apvts_.getRawParameterValue(pid::minRepeats)->load());
     p.jitterMs = apvts_.getRawParameterValue(pid::jitterMs)->load();
@@ -128,6 +131,7 @@ void PlectroProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     trillActive_.fill(false);
     trillMainKey_.fill(-1);
     keyswitchSeen_.store(false, std::memory_order_relaxed);
+    musicalNotesSinceStart_.store(0, std::memory_order_relaxed);
     wasPlaying_ = false;
     hostSample_ = 0;
     schedPos_ = 0;
@@ -144,6 +148,7 @@ void PlectroProcessor::releaseResources()
     trillActive_.fill(false);
     trillMainKey_.fill(-1);
     keyswitchSeen_.store(false, std::memory_order_relaxed);
+    musicalNotesSinceStart_.store(0, std::memory_order_relaxed);
     wasPlaying_ = false;
     scheduled_.clear();
     schedPos_ = 0;
@@ -216,6 +221,18 @@ void PlectroProcessor::ingestMidi(const juce::MidiBuffer& midi)
         trillActive_[chan] = trill;
     }
 
+    // Track held notes so the editor can show the sounding note (top of a chord) and flag chords.
+    // Balanced across note-on/off; only the audio thread touches the counts.
+    auto trackNote = [this](int note, bool on) {
+        if (note < 0 || note > 127) return;
+        if (on) { if (noteOnCount_[note]++ == 0) ++activeNoteTotal_; }
+        else if (noteOnCount_[note] > 0 && --noteOnCount_[note] == 0) --activeNoteTotal_;
+        int top = -1;
+        for (int n = 127; n >= 0; --n) if (noteOnCount_[n] > 0) { top = n; break; }
+        currentTopNote_.store(top, std::memory_order_relaxed);
+        currentChord_.store(activeNoteTotal_ > 1, std::memory_order_relaxed);
+    };
+
     // PASS 2: Process all regular NoteOns and NoteOffs
     for (const auto meta : midi)
     {
@@ -228,7 +245,15 @@ void PlectroProcessor::ingestMidi(const juce::MidiBuffer& midi)
             const int note = msg.getNoteNumber();
             if (note >= pid::kKeyswitchBase && note <= pid::kKeyswitchZoneTop)
                 continue;
-            
+
+            trackNote(note, true);
+
+            // Count musical notes so a host that queried our keyswitches but never sends one gets
+            // auto detection back after a few notes (see shouldAutoDetect). Saturates; only the
+            // first kQueryGraceNotes matter, and it is meaningless once a keyswitch has been seen.
+            if (musicalNotesSinceStart_.load(std::memory_order_relaxed) < kQueryGraceNotes)
+                musicalNotesSinceStart_.fetch_add(1, std::memory_order_relaxed);
+
             if (trillActive_[chan])
             {
                 if (trillMainKey_[chan] < 0)
@@ -258,6 +283,8 @@ void PlectroProcessor::ingestMidi(const juce::MidiBuffer& midi)
             }
             if (note >= pid::kKeyswitchBase && note <= pid::kKeyswitchZoneTop)
                 continue;
+
+            trackNote(note, false);
 
             if (trillActive_[chan] && trillMainKey_[chan] >= 0 && note != trillMainKey_[chan])
                 continue; // drop the note-off of the dropped upper note
@@ -331,10 +358,15 @@ void PlectroProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
     if (wasPlaying_ && !isPlaying)
     {
         keyswitchSeen_.store(false, std::memory_order_relaxed);
+        musicalNotesSinceStart_.store(0, std::memory_order_relaxed);
         articulationLatch_.fill(Articulation::Auto);
         legatoActive_.fill(false);
         legatoNoteSeen_.fill(false);
         lastInputVelocity_.store(64, std::memory_order_relaxed); // recentre the compression indicator
+        std::fill(std::begin(noteOnCount_), std::end(noteOnCount_), 0);
+        activeNoteTotal_ = 0;
+        currentTopNote_.store(-1, std::memory_order_relaxed);
+        currentChord_.store(false, std::memory_order_relaxed);
     }
     wasPlaying_ = isPlaying;
 

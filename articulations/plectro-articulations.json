@@ -1,0 +1,175 @@
+{
+  "name": "Plectro",
+  "vendor": "Do2tis",
+  "version": 1,
+  "description": "Single source of truth for Plectro's articulation keyswitch map. Edit this file, then run tools/generate_articulation_maps.py to regenerate every derived artifact (C++ header, host expression/articulation maps, docs). Never hand-edit the generated files.",
+  "keyswitchZone": {
+    "base": 0,
+    "top": 12,
+    "note": "Reserved low MIDI zone (C-1..C0). No plucked-string instrument plays that low, and it matches MuseScore's own reserved keyswitch zone. The MIDI number is the reference; hosts label it C-2, C-1 or C0 depending on their octave convention."
+  },
+  "behaviors": {
+    "Latching": "Selected by a single Note On and held until another keyswitch changes it. No Note Off. The primary articulations.",
+    "Momentary": "Active only while the keyswitch is held (Note On..Note Off). Reserved for future use; Plectro ships none today.",
+    "Span": "Held across a range of notes (Note On at the range start, Note Off at the range end). Reserved for future range techniques.",
+    "Modifier": "Layers over the current timbre instead of replacing it, held between Note On and Note Off. Legato is the only modifier today."
+  },
+  "articulations": [
+    {
+      "note": 0,
+      "id": "standard",
+      "name": "Standard",
+      "shortTitle": "Std",
+      "articulation": "Picked",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": ["Legato"]
+    },
+    {
+      "note": 1,
+      "id": "pizzicato",
+      "name": "Pizzicato",
+      "shortTitle": "Pizz",
+      "articulation": "Pizzicato",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": ["Legato"]
+    },
+    {
+      "note": 2,
+      "id": "snap_pizzicato",
+      "name": "SnapPizzicato",
+      "shortTitle": "Snap",
+      "articulation": "Pizzicato",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": ["Legato"]
+    },
+    {
+      "note": 3,
+      "id": "random_pizzicato",
+      "name": "RandomPizzicato",
+      "shortTitle": "RndPz",
+      "articulation": "Pizzicato",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": ["Legato"]
+    },
+    {
+      "note": 4,
+      "id": "harmonic",
+      "name": "Harmonic",
+      "shortTitle": "Harm",
+      "articulation": "Harmonic",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": ["Legato"]
+    },
+    {
+      "note": 5,
+      "id": "mute",
+      "name": "Mute",
+      "shortTitle": "Mute",
+      "articulation": "Mute",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": ["Legato"]
+    },
+    {
+      "note": 6,
+      "id": "palm_mute",
+      "name": "PalmMute",
+      "shortTitle": "PMute",
+      "articulation": "Mute",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": ["Legato"]
+    },
+    {
+      "note": 7,
+      "id": "tremolo_8th",
+      "name": "Tremolo8th",
+      "shortTitle": "Trem8",
+      "articulation": "Tremolo",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": ["Legato"]
+    },
+    {
+      "note": 8,
+      "id": "tremolo_16th",
+      "name": "Tremolo16th",
+      "shortTitle": "Trm16",
+      "articulation": "Tremolo",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": ["Legato"]
+    },
+    {
+      "note": 9,
+      "id": "tremolo_32nd",
+      "name": "Tremolo32nd",
+      "shortTitle": "Trm32",
+      "articulation": "Tremolo",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": ["Legato"]
+    },
+    {
+      "note": 10,
+      "id": "tremolo_64th",
+      "name": "Tremolo64th",
+      "shortTitle": "Trm64",
+      "articulation": "Tremolo",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": ["Legato"]
+    },
+    {
+      "note": 11,
+      "id": "trill",
+      "name": "Trill",
+      "shortTitle": "Trill",
+      "articulation": "Tremolo",
+      "behavior": "Latching",
+      "needsNoteOff": false,
+      "category": "base",
+      "canCombineWith": ["Legato"]
+    },
+    {
+      "note": 12,
+      "id": "legato",
+      "name": "Legato",
+      "shortTitle": "Leg",
+      "articulation": "Picked",
+      "behavior": "Modifier",
+      "needsNoteOff": true,
+      "category": "complementary",
+      "canCombineWith": [
+        "Standard",
+        "Pizzicato",
+        "SnapPizzicato",
+        "RandomPizzicato",
+        "Harmonic",
+        "Mute",
+        "PalmMute",
+        "Tremolo8th",
+        "Tremolo16th",
+        "Tremolo32nd",
+        "Tremolo64th",
+        "Trill"
+      ]
+    }
+  ]
+}

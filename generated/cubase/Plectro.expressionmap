@@ -1,0 +1,435 @@
+<?xml version="1.0" encoding="utf-8"?>
+<InstrumentMap>
+  <string name="name" value="Plectro" wide="true"/>
+  <list name="slots" type="obj">
+    <obj class="PSlot" ID="1000000000">
+      <int name="status" value="0"/>
+      <list name="pSoundSlot" type="obj">
+        <obj class="PSoundSlot" ID="1000000001">
+          <member name="conditions">
+            <list name="conditions" type="obj">
+              <obj class="PArtDef" ID="1000000002">
+                <int name="type" value="0"/>
+                <int name="group" value="0"/>
+                <int name="art" value="0"/>
+                <int name="ch" value="-1"/>
+              </obj>
+            </list>
+          </member>
+          <member name="actions">
+            <list name="actions" type="obj">
+              <obj class="PSoundAction" ID="1000000003">
+                <int name="type" value="0"/>
+                <int name="data1" value="0"/>
+                <float name="data2" value="1"/>
+                <int name="channel" value="0"/>
+              </obj>
+            </list>
+          </member>
+          <string name="name" value="Standard" wide="true"/>
+          <int name="color" value="0"/>
+          <int name="minPitch" value="0"/>
+          <int name="maxPitch" value="127"/>
+          <int name="minVelocity" value="0"/>
+          <int name="maxVelocity" value="127"/>
+        </obj>
+      </list>
+    </obj>
+    <obj class="PSlot" ID="1000000004">
+      <int name="status" value="0"/>
+      <list name="pSoundSlot" type="obj">
+        <obj class="PSoundSlot" ID="1000000005">
+          <member name="conditions">
+            <list name="conditions" type="obj">
+              <obj class="PArtDef" ID="1000000006">
+                <int name="type" value="0"/>
+                <int name="group" value="0"/>
+                <int name="art" value="1"/>
+                <int name="ch" value="-1"/>
+              </obj>
+            </list>
+          </member>
+          <member name="actions">
+            <list name="actions" type="obj">
+              <obj class="PSoundAction" ID="1000000007">
+                <int name="type" value="0"/>
+                <int name="data1" value="1"/>
+                <float name="data2" value="1"/>
+                <int name="channel" value="0"/>
+              </obj>
+            </list>
+          </member>
+          <string name="name" value="Pizzicato" wide="true"/>
+          <int name="color" value="0"/>
+          <int name="minPitch" value="0"/>
+          <int name="maxPitch" value="127"/>
+          <int name="minVelocity" value="0"/>
+          <int name="maxVelocity" value="127"/>
+        </obj>
+      </list>
+    </obj>
+    <obj class="PSlot" ID="1000000008">
+      <int name="status" value="0"/>
+      <list name="pSoundSlot" type="obj">
+        <obj class="PSoundSlot" ID="1000000009">
+          <member name="conditions">
+            <list name="conditions" type="obj">
+              <obj class="PArtDef" ID="1000000010">
+                <int name="type" value="0"/>
+                <int name="group" value="0"/>
+                <int name="art" value="2"/>
+                <int name="ch" value="-1"/>
+              </obj>
+            </list>
+          </member>
+          <member name="actions">
+            <list name="actions" type="obj">
+              <obj class="PSoundAction" ID="1000000011">
+                <int name="type" value="0"/>
+                <int name="data1" value="2"/>
+                <float name="data2" value="1"/>
+                <int name="channel" value="0"/>
+              </obj>
+            </list>
+          </member>
+          <string name="name" value="SnapPizzicato" wide="true"/>
+          <int name="color" value="0"/>
+          <int name="minPitch" value="0"/>
+          <int name="maxPitch" value="127"/>
+          <int name="minVelocity" value="0"/>
+          <int name="maxVelocity" value="127"/>
+        </obj>
+      </list>
+    </obj>
+    <obj class="PSlot" ID="1000000012">
+      <int name="status" value="0"/>
+      <list name="pSoundSlot" type="obj">
+        <obj class="PSoundSlot" ID="1000000013">
+          <member name="conditions">
+            <list name="conditions" type="obj">
+              <obj class="PArtDef" ID="1000000014">
+                <int name="type" value="0"/>
+                <int name="group" value="0"/>
+                <int name="art" value="3"/>
+                <int name="ch" value="-1"/>
+              </obj>
+            </list>
+          </member>
+          <member name="actions">
+            <list name="actions" type="obj">
+              <obj class="PSoundAction" ID="1000000015">
+                <int name="type" value="0"/>
+                <int name="data1" value="3"/>
+                <float name="data2" value="1"/>
+                <int name="channel" value="0"/>
+              </obj>
+            </list>
+          </member>
+          <string name="name" value="RandomPizzicato" wide="true"/>
+          <int name="color" value="0"/>
+          <int name="minPitch" value="0"/>
+          <int name="maxPitch" value="127"/>
+          <int name="minVelocity" value="0"/>
+          <int name="maxVelocity" value="127"/>
+        </obj>
+      </list>
+    </obj>
+    <obj class="PSlot" ID="1000000016">
+      <int name="status" value="0"/>
+      <list name="pSoundSlot" type="obj">
+        <obj class="PSoundSlot" ID="1000000017">
+          <member name="conditions">
+            <list name="conditions" type="obj">
+              <obj class="PArtDef" ID="1000000018">
+                <int name="type" value="0"/>
+                <int name="group" value="0"/>
+                <int name="art" value="4"/>
+                <int name="ch" value="-1"/>
+              </obj>
+            </list>
+          </member>
+          <member name="actions">
+            <list name="actions" type="obj">
+              <obj class="PSoundAction" ID="1000000019">
+                <int name="type" value="0"/>
+                <int name="data1" value="4"/>
+                <float name="data2" value="1"/>
+                <int name="channel" value="0"/>
+              </obj>
+            </list>
+          </member>
+          <string name="name" value="Harmonic" wide="true"/>
+          <int name="color" value="0"/>
+          <int name="minPitch" value="0"/>
+          <int name="maxPitch" value="127"/>
+          <int name="minVelocity" value="0"/>
+          <int name="maxVelocity" value="127"/>
+        </obj>
+      </list>
+    </obj>
+    <obj class="PSlot" ID="1000000020">
+      <int name="status" value="0"/>
+      <list name="pSoundSlot" type="obj">
+        <obj class="PSoundSlot" ID="1000000021">
+          <member name="conditions">
+            <list name="conditions" type="obj">
+              <obj class="PArtDef" ID="1000000022">
+                <int name="type" value="0"/>
+                <int name="group" value="0"/>
+                <int name="art" value="5"/>
+                <int name="ch" value="-1"/>
+              </obj>
+            </list>
+          </member>
+          <member name="actions">
+            <list name="actions" type="obj">
+              <obj class="PSoundAction" ID="1000000023">
+                <int name="type" value="0"/>
+                <int name="data1" value="5"/>
+                <float name="data2" value="1"/>
+                <int name="channel" value="0"/>
+              </obj>
+            </list>
+          </member>
+          <string name="name" value="Mute" wide="true"/>
+          <int name="color" value="0"/>
+          <int name="minPitch" value="0"/>
+          <int name="maxPitch" value="127"/>
+          <int name="minVelocity" value="0"/>
+          <int name="maxVelocity" value="127"/>
+        </obj>
+      </list>
+    </obj>
+    <obj class="PSlot" ID="1000000024">
+      <int name="status" value="0"/>
+      <list name="pSoundSlot" type="obj">
+        <obj class="PSoundSlot" ID="1000000025">
+          <member name="conditions">
+            <list name="conditions" type="obj">
+              <obj class="PArtDef" ID="1000000026">
+                <int name="type" value="0"/>
+                <int name="group" value="0"/>
+                <int name="art" value="6"/>
+                <int name="ch" value="-1"/>
+              </obj>
+            </list>
+          </member>
+          <member name="actions">
+            <list name="actions" type="obj">
+              <obj class="PSoundAction" ID="1000000027">
+                <int name="type" value="0"/>
+                <int name="data1" value="6"/>
+                <float name="data2" value="1"/>
+                <int name="channel" value="0"/>
+              </obj>
+            </list>
+          </member>
+          <string name="name" value="PalmMute" wide="true"/>
+          <int name="color" value="0"/>
+          <int name="minPitch" value="0"/>
+          <int name="maxPitch" value="127"/>
+          <int name="minVelocity" value="0"/>
+          <int name="maxVelocity" value="127"/>
+        </obj>
+      </list>
+    </obj>
+    <obj class="PSlot" ID="1000000028">
+      <int name="status" value="0"/>
+      <list name="pSoundSlot" type="obj">
+        <obj class="PSoundSlot" ID="1000000029">
+          <member name="conditions">
+            <list name="conditions" type="obj">
+              <obj class="PArtDef" ID="1000000030">
+                <int name="type" value="0"/>
+                <int name="group" value="0"/>
+                <int name="art" value="7"/>
+                <int name="ch" value="-1"/>
+              </obj>
+            </list>
+          </member>
+          <member name="actions">
+            <list name="actions" type="obj">
+              <obj class="PSoundAction" ID="1000000031">
+                <int name="type" value="0"/>
+                <int name="data1" value="7"/>
+                <float name="data2" value="1"/>
+                <int name="channel" value="0"/>
+              </obj>
+            </list>
+          </member>
+          <string name="name" value="Tremolo8th" wide="true"/>
+          <int name="color" value="0"/>
+          <int name="minPitch" value="0"/>
+          <int name="maxPitch" value="127"/>
+          <int name="minVelocity" value="0"/>
+          <int name="maxVelocity" value="127"/>
+        </obj>
+      </list>
+    </obj>
+    <obj class="PSlot" ID="1000000032">
+      <int name="status" value="0"/>
+      <list name="pSoundSlot" type="obj">
+        <obj class="PSoundSlot" ID="1000000033">
+          <member name="conditions">
+            <list name="conditions" type="obj">
+              <obj class="PArtDef" ID="1000000034">
+                <int name="type" value="0"/>
+                <int name="group" value="0"/>
+                <int name="art" value="8"/>
+                <int name="ch" value="-1"/>
+              </obj>
+            </list>
+          </member>
+          <member name="actions">
+            <list name="actions" type="obj">
+              <obj class="PSoundAction" ID="1000000035">
+                <int name="type" value="0"/>
+                <int name="data1" value="8"/>
+                <float name="data2" value="1"/>
+                <int name="channel" value="0"/>
+              </obj>
+            </list>
+          </member>
+          <string name="name" value="Tremolo16th" wide="true"/>
+          <int name="color" value="0"/>
+          <int name="minPitch" value="0"/>
+          <int name="maxPitch" value="127"/>
+          <int name="minVelocity" value="0"/>
+          <int name="maxVelocity" value="127"/>
+        </obj>
+      </list>
+    </obj>
+    <obj class="PSlot" ID="1000000036">
+      <int name="status" value="0"/>
+      <list name="pSoundSlot" type="obj">
+        <obj class="PSoundSlot" ID="1000000037">
+          <member name="conditions">
+            <list name="conditions" type="obj">
+              <obj class="PArtDef" ID="1000000038">
+                <int name="type" value="0"/>
+                <int name="group" value="0"/>
+                <int name="art" value="9"/>
+                <int name="ch" value="-1"/>
+              </obj>
+            </list>
+          </member>
+          <member name="actions">
+            <list name="actions" type="obj">
+              <obj class="PSoundAction" ID="1000000039">
+                <int name="type" value="0"/>
+                <int name="data1" value="9"/>
+                <float name="data2" value="1"/>
+                <int name="channel" value="0"/>
+              </obj>
+            </list>
+          </member>
+          <string name="name" value="Tremolo32nd" wide="true"/>
+          <int name="color" value="0"/>
+          <int name="minPitch" value="0"/>
+          <int name="maxPitch" value="127"/>
+          <int name="minVelocity" value="0"/>
+          <int name="maxVelocity" value="127"/>
+        </obj>
+      </list>
+    </obj>
+    <obj class="PSlot" ID="1000000040">
+      <int name="status" value="0"/>
+      <list name="pSoundSlot" type="obj">
+        <obj class="PSoundSlot" ID="1000000041">
+          <member name="conditions">
+            <list name="conditions" type="obj">
+              <obj class="PArtDef" ID="1000000042">
+                <int name="type" value="0"/>
+                <int name="group" value="0"/>
+                <int name="art" value="10"/>
+                <int name="ch" value="-1"/>
+              </obj>
+            </list>
+          </member>
+          <member name="actions">
+            <list name="actions" type="obj">
+              <obj class="PSoundAction" ID="1000000043">
+                <int name="type" value="0"/>
+                <int name="data1" value="10"/>
+                <float name="data2" value="1"/>
+                <int name="channel" value="0"/>
+              </obj>
+            </list>
+          </member>
+          <string name="name" value="Tremolo64th" wide="true"/>
+          <int name="color" value="0"/>
+          <int name="minPitch" value="0"/>
+          <int name="maxPitch" value="127"/>
+          <int name="minVelocity" value="0"/>
+          <int name="maxVelocity" value="127"/>
+        </obj>
+      </list>
+    </obj>
+    <obj class="PSlot" ID="1000000044">
+      <int name="status" value="0"/>
+      <list name="pSoundSlot" type="obj">
+        <obj class="PSoundSlot" ID="1000000045">
+          <member name="conditions">
+            <list name="conditions" type="obj">
+              <obj class="PArtDef" ID="1000000046">
+                <int name="type" value="0"/>
+                <int name="group" value="0"/>
+                <int name="art" value="11"/>
+                <int name="ch" value="-1"/>
+              </obj>
+            </list>
+          </member>
+          <member name="actions">
+            <list name="actions" type="obj">
+              <obj class="PSoundAction" ID="1000000047">
+                <int name="type" value="0"/>
+                <int name="data1" value="11"/>
+                <float name="data2" value="1"/>
+                <int name="channel" value="0"/>
+              </obj>
+            </list>
+          </member>
+          <string name="name" value="Trill" wide="true"/>
+          <int name="color" value="0"/>
+          <int name="minPitch" value="0"/>
+          <int name="maxPitch" value="127"/>
+          <int name="minVelocity" value="0"/>
+          <int name="maxVelocity" value="127"/>
+        </obj>
+      </list>
+    </obj>
+    <obj class="PSlot" ID="1000000048">
+      <int name="status" value="0"/>
+      <list name="pSoundSlot" type="obj">
+        <obj class="PSoundSlot" ID="1000000049">
+          <member name="conditions">
+            <list name="conditions" type="obj">
+              <obj class="PArtDef" ID="1000000050">
+                <int name="type" value="0"/>
+                <int name="group" value="0"/>
+                <int name="art" value="12"/>
+                <int name="ch" value="-1"/>
+              </obj>
+            </list>
+          </member>
+          <member name="actions">
+            <list name="actions" type="obj">
+              <obj class="PSoundAction" ID="1000000051">
+                <int name="type" value="0"/>
+                <int name="data1" value="12"/>
+                <float name="data2" value="1"/>
+                <int name="channel" value="0"/>
+              </obj>
+            </list>
+          </member>
+          <string name="name" value="Legato" wide="true"/>
+          <int name="color" value="0"/>
+          <int name="minPitch" value="0"/>
+          <int name="maxPitch" value="127"/>
+          <int name="minVelocity" value="0"/>
+          <int name="maxVelocity" value="127"/>
+        </obj>
+      </list>
+    </obj>
+  </list>
+</InstrumentMap>

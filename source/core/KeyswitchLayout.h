@@ -1,3 +1,7 @@
+// GENERATED FILE - do not edit by hand.
+// Source of truth: articulations/plectro-articulations.json
+// Regenerate with: python3 tools/generate_articulation_maps.py
+//
 // Single source of truth for Plectro's keyswitch layout: the keyswitch MIDI note, the exact
 // MuseScore articulation name advertised via VST3 IKeyswitchController (so the host matches it
 // without heuristics), and the internal articulation it selects. Both the IKeyswitchController
@@ -15,35 +19,42 @@
 
 namespace plectro {
 
+// How a keyswitch is delivered and held (see articulations/plectro-articulations.json):
+//   Latching  - a single Note On selects it and it holds until another keyswitch changes it.
+//   Momentary - active only while held (Note On..Note Off). Reserved; none ship today.
+//   Span      - held across a range of notes. Reserved for future range techniques.
+//   Modifier  - layers over the current timbre instead of replacing it (Legato).
+enum class KeyswitchBehavior { Latching, Momentary, Span, Modifier };
+
+// A base timbre versus a complementary modifier layered over one.
+enum class ArticulationCategory { Base, Complementary };
+
 struct KeyswitchDef
 {
-    int note;                  // keyswitch MIDI note (in the reserved low zone)
-    const char* name;          // exact MuseScore mpe::ArticulationType name
-    Articulation articulation; // internal articulation this keyswitch selects
+    int note;                      // keyswitch MIDI note (in the reserved low zone)
+    const char* id;                // stable internal identifier
+    const char* name;              // exact MuseScore mpe::ArticulationType name (host matches this)
+    const char* shortTitle;        // abbreviated label for host displays
+    Articulation articulation;     // internal articulation this keyswitch selects
+    KeyswitchBehavior behavior;    // how the keyswitch is held
+    bool needsNoteOff;             // host must send a Note Off (modifiers/spans)
+    ArticulationCategory category; // base timbre vs complementary modifier
 };
 
 inline constexpr std::array<KeyswitchDef, 13> kKeyswitchLayout = { {
-    { 0, "Standard", Articulation::Picked },
-    // Pizzicato family: distinct keyswitches, all rendered with the one pizzicato sound.
-    { 1, "Pizzicato", Articulation::Pizzicato },
-    { 2, "SnapPizzicato", Articulation::Pizzicato },
-    { 3, "RandomPizzicato", Articulation::Pizzicato },
-    { 4, "Harmonic", Articulation::Harmonic },
-    // Mute family: distinct keyswitches, all rendered with the one mute sound.
-    { 5, "Mute", Articulation::Mute },
-    { 6, "PalmMute", Articulation::Mute },
-    // Tremolo subdivisions: distinct keyswitches, all rendered with the one tremolo.
-    { 7, "Tremolo8th", Articulation::Tremolo },
-    { 8, "Tremolo16th", Articulation::Tremolo },
-    { 9, "Tremolo32nd", Articulation::Tremolo },
-    { 10, "Tremolo64th", Articulation::Tremolo },
-    // Trill: rendered as a single sustained tremolo on the main note (the processor drops the
-    // alternating upper note), so it uses the same tremolo sound.
-    { 11, "Trill", Articulation::Tremolo },
-    // Legato (slur / hammer-on-pull-off) is a MODIFIER, not a timbre: the processor intercepts this
-    // note to arm a per-channel legato latch and does NOT change the articulation. The articulation
-    // field is a harmless placeholder; the note is never decoded via articulationForKeyswitchNote.
-    { 12, "Legato", Articulation::Picked },
+    { 0, "standard", "Standard", "Std", Articulation::Picked, KeyswitchBehavior::Latching, false, ArticulationCategory::Base },
+    { 1, "pizzicato", "Pizzicato", "Pizz", Articulation::Pizzicato, KeyswitchBehavior::Latching, false, ArticulationCategory::Base },
+    { 2, "snap_pizzicato", "SnapPizzicato", "Snap", Articulation::Pizzicato, KeyswitchBehavior::Latching, false, ArticulationCategory::Base },
+    { 3, "random_pizzicato", "RandomPizzicato", "RndPz", Articulation::Pizzicato, KeyswitchBehavior::Latching, false, ArticulationCategory::Base },
+    { 4, "harmonic", "Harmonic", "Harm", Articulation::Harmonic, KeyswitchBehavior::Latching, false, ArticulationCategory::Base },
+    { 5, "mute", "Mute", "Mute", Articulation::Mute, KeyswitchBehavior::Latching, false, ArticulationCategory::Base },
+    { 6, "palm_mute", "PalmMute", "PMute", Articulation::Mute, KeyswitchBehavior::Latching, false, ArticulationCategory::Base },
+    { 7, "tremolo_8th", "Tremolo8th", "Trem8", Articulation::Tremolo, KeyswitchBehavior::Latching, false, ArticulationCategory::Base },
+    { 8, "tremolo_16th", "Tremolo16th", "Trm16", Articulation::Tremolo, KeyswitchBehavior::Latching, false, ArticulationCategory::Base },
+    { 9, "tremolo_32nd", "Tremolo32nd", "Trm32", Articulation::Tremolo, KeyswitchBehavior::Latching, false, ArticulationCategory::Base },
+    { 10, "tremolo_64th", "Tremolo64th", "Trm64", Articulation::Tremolo, KeyswitchBehavior::Latching, false, ArticulationCategory::Base },
+    { 11, "trill", "Trill", "Trill", Articulation::Tremolo, KeyswitchBehavior::Latching, false, ArticulationCategory::Base },
+    { 12, "legato", "Legato", "Leg", Articulation::Picked, KeyswitchBehavior::Modifier, true, ArticulationCategory::Complementary },
 } };
 
 // Decode a keyswitch-zone MIDI note to the articulation it selects. A note outside the layout
@@ -62,7 +73,7 @@ inline bool keyswitchNoteIsTrill(int note)
 {
     for (const auto& k : kKeyswitchLayout)
         if (k.note == note)
-            return std::string_view(k.name) == "Trill";
+            return std::string_view(k.id) == "trill";
     return false;
 }
 
@@ -72,7 +83,7 @@ inline bool keyswitchNoteIsLegato(int note)
 {
     for (const auto& k : kKeyswitchLayout)
         if (k.note == note)
-            return std::string_view(k.name) == "Legato";
+            return std::string_view(k.id) == "legato";
     return false;
 }
 

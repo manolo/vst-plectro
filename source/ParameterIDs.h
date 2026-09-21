@@ -97,7 +97,7 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createLayout()
 
     // Gain is expressed in dB (0 dB = unity), so typing "0" means unity, not silence. The
     // knob is skewed so 0 dB sits near the middle of the travel, not near the top.
-    auto gainRange = NormalisableRange<float>(-36.0f, 6.0f);
+    auto gainRange = NormalisableRange<float>(-36.0f, 12.0f);
     gainRange.setSkewForCentre(0.0f);
     layout.add(std::make_unique<AudioParameterFloat>(
         ParameterID{masterGain, 1}, "Master Gain", gainRange, 0.0f,

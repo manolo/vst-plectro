@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(plectro-vst VERSION 0.1.0 LANGUAGES C CXX)
+project(plectro-vst VERSION 0.2.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -21,8 +21,7 @@ set(PLECTRO_ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets"
 # ---------------------------------------------------------------------------
 # plectro_core: JUCE-free, engine-free pure logic. Unit tested on its own.
 # ---------------------------------------------------------------------------
-# Shared, public safe core. The humanization math is NOT here: it lives in source/pro/ and is
-# added per edition below, so the free build never compiles the Pro algorithms.
+# Shared, JUCE-free core, added per edition below.
 add_library(plectro_core STATIC
     source/core/StreamingScheduler.cpp
     source/core/PresetMapping.cpp
@@ -102,10 +101,7 @@ if(HVST_BUILD_PLUGIN)
             source/EditorLookAndFeel.cpp
             source/EditorSupport.cpp
             source/engine/SoundFontEngine.cpp)
-        # The humanization math and the full editor are selected at build time, no preprocessor: the
-        # Pro edition compiles the algorithms and the humanization editor from source/pro/, the free
-        # edition a neutral no-op and a compact editor. The free build compiles and links with
-        # source/pro/ absent.
+        # The variation source and the editor are selected at build time, no preprocessor.
         if(pro)
         else()
             target_sources(${target} PRIVATE
@@ -124,6 +120,7 @@ if(HVST_BUILD_PLUGIN)
             HVST_DEFAULT_BANK=0)
         target_link_libraries(${target} PRIVATE
             plectro_core
+            plectro_images
             juce::juce_audio_utils
             juce::juce_dsp
             PUBLIC
@@ -208,7 +205,9 @@ if(HVST_BUILD_PLUGIN)
         endif()
     endfunction()
 
+    # UI images embedded into every edition (brand logo drawn in the editor header).
+    juce_add_binary_data(plectro_images SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/assets/plectro_logo.png")
+    set_target_properties(plectro_images PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
     add_plectro_edition(plectro     "Plectro"     Plec 0 "Plectro.sf2")
-    # The Pro edition builds only where its private sources are present. The public repo is exported
-    # without source/pro/ (the export strips this block), so it builds the free edition alone.
 endif()

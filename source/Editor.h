@@ -61,6 +61,9 @@ private:
     juce::TooltipWindow tooltip_ { this, 500 };
     juce::Rectangle<int> tremBox_, outBox_;
 
+    juce::Image logo_;                 // brand mark drawn at the header left
+    juce::Rectangle<int> logoBounds_;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Editor)
 };
 

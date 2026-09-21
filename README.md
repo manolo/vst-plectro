@@ -62,6 +62,38 @@ note and renders the ornament as a single sustained tremolo, so a trilled long n
 tremolo roll on the written pitch instead of a stuttering two note trill. Turn it off to hear the
 ornament as written notes.
 
+## Articulations across hosts
+
+Plectro selects its playing techniques (pizzicato, tremolo, harmonic, mute, legato) through
+**keyswitches**: reserved low MIDI notes (0 to 12) that pick an articulation instead of sounding a
+pitch. There is no universal keyswitch standard, so Plectro publishes one stable map and never
+changes the note numbers, keeping saved projects working. The map is generated from a single source
+of truth, `articulations/plectro-articulations.json`, by `tools/generate_articulation_maps.py`.
+
+Hosts reach that map in one of three ways:
+
+- **Auto discovery.** The host queries the plugin over VST3 `IKeyswitchController` and configures
+  itself. Cubase, Dorico and the MuseScore fork work this way.
+- **Official map file.** The host imports a file Plectro ships, under `generated/`:
+  `logic/Plectro.plist` (Logic Pro Articulation Set), `cubase/Plectro.expressionmap` (Cubase
+  Expression Map), `dorico/Plectro.doricolib` (Dorico library), and `generic/Plectro-articulations.json`
+  (a neutral map for any tool).
+- **Manual MIDI notes.** In hosts without either, place the keyswitch notes by hand.
+
+| Host | Format | How articulations arrive |
+|:-----|:-------|:-------------------------|
+| Cubase | VST3 | Auto discovery, or the bundled Expression Map |
+| Dorico | VST3 | Auto discovery, the `.doricolib`, or the Cubase map |
+| Logic Pro | Audio Unit | Bundled Articulation Set (`.plist`) |
+| GarageBand (macOS) | Audio Unit | Manual keyswitch notes |
+| GarageBand (iOS) | AUv3 | Not supported yet (future work) |
+| MuseScore (fork) | VST3 | Auto discovery |
+| REAPER, Ableton Live, others | VST3/AU | Manual keyswitch notes |
+
+The MIDI number is the reference; hosts label MIDI 0 as C-1 (Cubase, Dorico, MuseScore) or C-2
+(Logic, GarageBand). Full per host instructions, the complete map and a manual smoke test are in
+[docs/articulations.md](docs/articulations.md).
+
 ## Full support in MuseScore
 
 Plectro runs in any VST3 / AU host today, and in MuseScore it plays out of the box through automatic
@@ -124,9 +156,10 @@ into your plugin folder, then restart your host:
 The bundles are **not code signed or notarized**, so your system blocks them the first time and you
 have to allow them by hand, once:
 
-- **macOS:** right click the plugin in Finder and choose **Open**, or clear the quarantine flag from a
-  terminal with `xattr -dr com.apple.quarantine "<the plugin bundle>"`. If your host still does not
-  list it, allow it in **System Settings > Privacy & Security**.
+- **macOS:** opening a plugin from Finder does not clear its quarantine, so after copying the bundles
+  into the folders above, and before you open your host, clear the flag from a terminal with
+  `sudo xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/Plectro*.vst3 ~/Library/Audio/Plug-Ins/Components/Plectro*.component`.
+  If your host still does not list it, allow it in **System Settings > Privacy & Security**.
 - **Windows:** on the SmartScreen warning choose **More info > Run anyway**.
 
 ## Use in MuseScore 4
@@ -161,8 +194,8 @@ ctest --test-dir build --output-on-failure
 ```
 
 To run a local build, copy the freshly built bundle from `build/` into the plugin folder listed
-under Install. A bundle you built yourself is not quarantined, so the unsigned first open steps above
-do not apply to it.
+under Install. A bundle you built yourself is not quarantined, so the quarantine step above does not
+apply to it.
 
 ## License
 

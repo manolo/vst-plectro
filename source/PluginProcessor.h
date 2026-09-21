@@ -15,6 +15,7 @@
 #include "core/Types.h"
 #include "core/StreamingScheduler.h"
 #include "core/LayerSet.h"
+#include "core/DetectionGate.h"
 #include "KeyswitchSupport.h"
 
 namespace plectro {
@@ -91,6 +92,11 @@ public:
     float outputLevel() const { return outputLevel_.load(std::memory_order_relaxed); }
     int lastInputVelocity() const { return lastInputVelocity_.load(std::memory_order_relaxed); }
 
+    // The currently sounding note for the editor readout: the highest held note (top of a chord),
+    // or -1 when nothing is playing, plus whether more than one note is held (a chord).
+    int currentTopNote() const { return currentTopNote_.load(std::memory_order_relaxed); }
+    bool currentChordActive() const { return currentChord_.load(std::memory_order_relaxed); }
+
 
     // True once a host keyswitch has been seen this playback session (reset on transport stop).
     // While true the rhythmic detector is off, so the instrument trusts the host's keyswitches.
@@ -154,8 +160,13 @@ private:
     std::atomic<bool> keyswitchTremoloLegato_{ false }; // the sounding keyswitch tremolo is a slur continuation
     std::atomic<float> outputLevel_{ 0.0f };            // output peak (0..1) for the VU meter
     std::atomic<int> lastInputVelocity_{ 64 };          // last played note-on velocity
+    int noteOnCount_[128] {};                           // audio thread only: active count per pitch
+    int activeNoteTotal_ = 0;                           // audio thread only: distinct notes now held
+    std::atomic<int> currentTopNote_{ -1 };             // highest held note, for the note readout
+    std::atomic<bool> currentChord_{ false };           // more than one note held
 
     std::atomic<bool> keyswitchSeen_{ false };          // a keyswitch was seen this session
+    std::atomic<int> musicalNotesSinceStart_{ 0 };      // musical notes this session (for shouldAutoDetect)
     bool wasPlaying_ = false;                           // transport state, to detect Stop
     juce::String hostTrackName_;                        // last track name from the host (message thread)
 
