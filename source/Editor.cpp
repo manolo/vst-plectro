@@ -2,6 +2,7 @@
 #include "EditorSupport.h"
 #include "ParameterIDs.h"
 #include "Edition.h"
+#include "BinaryData.h"
 
 namespace plectro {
 
@@ -19,6 +20,8 @@ Editor::Editor(PlectroProcessor& p)
     : juce::AudioProcessorEditor(p), processor_(p)
 {
     setLookAndFeel(&lnf_);
+
+    logo_ = juce::ImageCache::getFromMemory(BinaryData::plectro_logo_png, BinaryData::plectro_logo_pngSize);
 
     titleLabel_.setText(juce::String::fromUTF8(kEdition.productName).toUpperCase(), juce::dontSendNotification);
     titleLabel_.setFont(juce::Font(juce::FontOptions(22.0f, juce::Font::bold)));
@@ -201,6 +204,11 @@ void Editor::resized()
     header.removeFromLeft(6);
     instrumentBox_.setBounds(header.withSizeKeepingCentre(header.getWidth(), 26));
 
+    // Brand watermark: the logo centred in the area below the header (the combo-box line), spanning
+    // the full remaining height. drawImageWithin preserves the 580x986 aspect and centres it
+    // horizontally. Drawn behind the controls in paint().
+    logoBounds_ = juce::Rectangle<int>(0, header.getBottom(), getWidth(), getHeight() - header.getBottom());
+
     // Channel/track name the host passed, just under the title. The row is always reserved (even
     // before the host sends the name) so the sections below do not jump up on first open and then
     // drop when the name arrives.
@@ -279,6 +287,15 @@ void Editor::paint(juce::Graphics& g)
         g.fillRoundedRectangle(s.box.toFloat(), 6.0f);
         g.setColour(panel);
         g.drawRoundedRectangle(s.box.toFloat().reduced(0.5f), 6.0f, 1.2f);
+    }
+
+    if (logo_.isValid() && !logoBounds_.isEmpty())
+    {
+        juce::Graphics::ScopedSaveState ss(g);
+        g.setOpacity(0.10f);
+        g.drawImageWithin(logo_, logoBounds_.getX(), logoBounds_.getY(),
+                          logoBounds_.getWidth(), logoBounds_.getHeight(),
+                          juce::RectanglePlacement::centred);
     }
 }
 

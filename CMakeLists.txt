@@ -120,6 +120,7 @@ if(HVST_BUILD_PLUGIN)
             HVST_DEFAULT_BANK=0)
         target_link_libraries(${target} PRIVATE
             plectro_core
+            plectro_images
             juce::juce_audio_utils
             juce::juce_dsp
             PUBLIC
@@ -203,6 +204,10 @@ if(HVST_BUILD_PLUGIN)
             endif()
         endif()
     endfunction()
+
+    # UI images embedded into every edition (brand logo drawn in the editor header).
+    juce_add_binary_data(plectro_images SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/assets/plectro_logo.png")
+    set_target_properties(plectro_images PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
     add_plectro_edition(plectro     "Plectro"     Plec 0 "Plectro.sf2")
 endif()
