@@ -22,6 +22,32 @@ binary="$macos_dir/$(/bin/ls "$macos_dir" | head -1)"
 # A dependency is "external" (must be bundled) when it lives under a package manager prefix.
 is_external() { [[ "$1" == /opt/homebrew/* || "$1" == /usr/local/* ]]; }
 
+# The conda-forge dependencies that vendor-macos-deps.sh fetches are linked as @rpath/libfoo.dylib
+# rather than with an absolute prefix, so the name alone does not say where the file is. Resolve
+# those against the vendor tree for the architecture of the bundle being processed.
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+bundle_arch="$(lipo -archs "$binary" 2>/dev/null | awk '{print $1}')"
+case "$bundle_arch" in
+    x86_64) vendor_lib="$repo_root/vendor/osx-64/lib" ;;
+    arm64)  vendor_lib="$repo_root/vendor/osx-arm64/lib" ;;
+    *)      vendor_lib="" ;;
+esac
+
+# Print the real file a dependency refers to, or nothing when it is not ours to bundle. Always
+# succeeds: under set -e a non zero return here would abort the caller's assignment.
+resolve_dep() {
+    local dep="$1"
+    if is_external "$dep"; then
+        readlink -f "$dep" 2>/dev/null || echo "$dep"
+    elif [[ "$dep" == @rpath/* && -n "$vendor_lib" ]]; then
+        local candidate="$vendor_lib/${dep#@rpath/}"
+        if [[ -f "$candidate" ]]; then
+            readlink -f "$candidate" 2>/dev/null || echo "$candidate"
+        fi
+    fi
+    return 0
+}
+
 # LC_LOAD_DYLIB references of a Mach-O (skip line 1, the file itself).
 deps_of() { otool -L "$1" 2>/dev/null | tail -n +2 | awk '{print $1}'; }
 
@@ -39,11 +65,11 @@ while (( idx < ${#scan_list[@]} )); do
     f="${scan_list[$idx]}"; idx=$((idx+1))
     while IFS= read -r dep; do
         [[ -n "$dep" ]] || continue
-        is_external "$dep" || continue
+        real="$(resolve_dep "$dep")"
+        [[ -n "$real" ]] || continue
         name="$(basename "$dep")"
         target="$frameworks/$name"
         if [[ ! -e "$target" ]]; then
-            real="$(readlink -f "$dep" 2>/dev/null || echo "$dep")"
             [[ -f "$real" ]] || { echo "error: cannot find source lib: $real (from $dep)" >&2; exit 1; }
             cp -f "$real" "$target"
             chmod u+w "$target"

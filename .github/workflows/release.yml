@@ -1,10 +1,17 @@
 # Public free edition release workflow. The export script (scripts/export-public.sh) copies this to
-# the public repo as .github/workflows/release.yml. Pushing a tag like v0.1 builds the portable free
-# Plectro bundles for macOS and publishes them as a GitHub Release.
+# the public repo as .github/workflows/release.yml. Pushing a tag like v0.1 builds the free Plectro
+# bundles for every platform and publishes them as a GitHub Release.
 #
-# Currently macOS Apple Silicon (arm64). Universal (Intel) and Windows are follow ups. Real code
-# signing / notarization is gated on the Apple secrets being present; without them the bundles are
-# ad-hoc signed (Gatekeeper shows a right-click to open the first time).
+# Six platforms, because on a public repository standard GitHub-hosted runners are free and
+# unlimited, including the arm64 and Intel ones. The private Pro repo cannot afford this (macOS
+# bills at 10x there), which is why Pro is built on demand or locally instead.
+#
+# macOS dependencies come from conda-forge rather than Homebrew: Homebrew switched off its Intel
+# bottle builders on 2026-08-28, so `brew install glib` on an Intel runner would compile glib from
+# source. conda-forge still ships both architectures of the same version.
+#
+# Real code signing / notarization is gated on the Apple secrets being present; without them the
+# bundles are ad-hoc signed (Gatekeeper shows a right-click to open the first time).
 name: release
 
 on:
@@ -16,9 +23,19 @@ permissions:
   contents: write # create the GitHub Release
 
 jobs:
-  macos:
-    name: macOS (Apple Silicon)
-    runs-on: macos-14
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # one platform failing should not hide the others
+      matrix:
+        include:
+          - { name: macOS arm64,   os: macos-14,         kind: macos,   arch: arm64,  subdir: osx-arm64, label: macOS-arm64 }
+          - { name: macOS x86_64,  os: macos-15-intel,   kind: macos,   arch: x86_64, subdir: osx-64,    label: macOS-x86_64 }
+          - { name: Linux x86_64,  os: ubuntu-22.04,     kind: linux,   arch: x86_64, label: Linux-x86_64 }
+          - { name: Linux arm64,   os: ubuntu-22.04-arm, kind: linux,   arch: arm64,  label: Linux-arm64 }
+          - { name: Windows x64,   os: windows-2022,     kind: windows, arch: x64,    triplet: x64-windows,   label: Windows-x64 }
+          - { name: Windows arm64, os: windows-11-arm,   kind: windows, arch: arm64,  triplet: arm64-windows, label: Windows-arm64 }
     env:
       # Non empty only when the owner has configured the corresponding repository secrets.
       HAS_SIGNING: ${{ secrets.MACOS_CERT_P12 != '' }}
@@ -27,13 +44,10 @@ jobs:
         with:
           lfs: true # the bundled SoundFont is stored in git-lfs
 
-      # glib + gettext + pkg-config are needed to build the minimal FluidSynth from source; ninja to build.
-      - name: Install build dependencies
-        run: brew install pkg-config glib gettext ninja
-
       - name: Provide the SoundFont
-        # The free SoundFont (CC0) is not committed here. Commit it at assets/Plectro.sf2, or set the
-        # PLECTRO_SF2_URL repository secret to a direct download URL. See distribution plan Phase 2.
+        # The free SoundFont (CC0) may not be committed. Commit it at assets/Plectro.sf2, or set the
+        # PLECTRO_SF2_URL repository secret to a direct download URL.
+        shell: bash
         env:
           SF2_URL: ${{ secrets.PLECTRO_SF2_URL }}
         run: |
@@ -47,81 +61,19 @@ jobs:
             exit 1
           fi
 
-      - name: Configure
-        run: >
-          cmake -B build -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
-          -DHVST_BUILD_TESTS=OFF
-          -DPLECTRO_MINIMAL_FLUIDSYNTH=ON
-          -DPLECTRO_BUNDLE_DEPS=ON
-          -DPLECTRO_ASSETS_DIR=${{ github.workspace }}/sf2
+      # --- dependencies, one way per platform ------------------------------------------------
 
-      - name: Build
-        run: cmake --build build --target plectro_VST3 plectro_AU
-
-      - name: Verify portability
-        # The bundles must not reference Homebrew or any GPL-3 library (readline).
-        shell: bash
+      - name: Install build dependencies (macOS)
+        if: matrix.kind == 'macos'
+        # ninja and pkg-config from Homebrew are fine, they run on the host; only the libraries
+        # that get linked into the plugin have to match the target architecture, and those come
+        # from conda-forge via the vendor script.
         run: |
-          fail=0
-          while IFS= read -r macho; do
-            bad=$(otool -L "$macho" 2>/dev/null | tail -n +2 | awk '{print $1}' \
-                  | grep -iE "/opt/homebrew|/usr/local|readline" || true)
-            [ -n "$bad" ] && { echo "LEAK in $macho:"; echo "$bad"; fail=1; }
-          done < <(find build/plectro_artefacts -type f \( -path '*/MacOS/*' -o -path '*/Frameworks/*' \))
-          [ $fail -eq 0 ] && echo "Portable: no host paths, no readline."
-          exit $fail
+          brew install pkg-config ninja
+          ./scripts/vendor-macos-deps.sh ${{ matrix.subdir }}
 
-      - name: Sign and notarize
-        # Placeholder for Developer ID signing + notarytool + stapler (distribution plan Phase 4).
-        # Runs only when the Apple credentials are configured; otherwise the bundles stay ad-hoc signed.
-        if: env.HAS_SIGNING == 'true'
-        run: |
-          echo "Signing secrets present; plug Developer ID codesign + notarytool + stapler here."
-
-      - name: Package
-        shell: bash
-        run: |
-          mkdir -p dist
-          vst3=$(find build/plectro_artefacts -type d -name 'Plectro.vst3' | head -1)
-          au=$(find build/plectro_artefacts -type d -name 'Plectro.component' | head -1)
-          ditto -c -k --keepParent "$vst3" "dist/Plectro-${{ github.ref_name }}-macOS-VST3.zip"
-          ditto -c -k --keepParent "$au" "dist/Plectro-${{ github.ref_name }}-macOS-AU.zip"
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: plectro-macos
-          path: dist/*.zip
-
-      - name: Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*.zip
-          fail_on_unmatched_files: true
-          body: |
-            ## Plectro ${{ github.ref_name }}
-
-            A humanized plucked string instrument (bandurria, laud, mandolina) for MuseScore and any
-            VST3/AU host. macOS, Apple Silicon.
-
-            ### Install
-            - VST3: unzip and move `Plectro.vst3` to `~/Library/Audio/Plug-Ins/VST3/`
-            - AU: unzip and move `Plectro.component` to `~/Library/Audio/Plug-Ins/Components/`
-
-            Then restart your host. If the plugin is unsigned, the first time right-click it in Finder
-            and choose Open to clear Gatekeeper.
-
-  linux:
-    name: Linux (x86_64)
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - name: Install build dependencies
+      - name: Install build dependencies (Linux)
+        if: matrix.kind == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -130,156 +82,159 @@ jobs:
             libasound2-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev \
             libxext-dev libfreetype6-dev libfontconfig1-dev libgl1-mesa-dev libcurl4-openssl-dev
 
-      - name: Provide the SoundFont
+      - name: Cache vcpkg binaries (Windows)
+        if: matrix.kind == 'windows'
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/vcpkg-cache
+          key: vcpkg-glib-${{ matrix.triplet }}-v1
+
+      - name: Install glib (Windows, vcpkg)
+        if: matrix.kind == 'windows'
+        shell: bash
         env:
-          SF2_URL: ${{ secrets.PLECTRO_SF2_URL }}
+          VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
         run: |
-          mkdir -p sf2
-          if [ -f assets/Plectro.sf2 ]; then
-            cp assets/Plectro.sf2 sf2/Plectro.sf2
-          elif [ -n "$SF2_URL" ]; then
-            curl -fsSL "$SF2_URL" -o sf2/Plectro.sf2
-          else
-            echo "No SoundFont: commit assets/Plectro.sf2 or set the PLECTRO_SF2_URL secret." >&2
-            exit 1
-          fi
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          "$VCPKG_INSTALLATION_ROOT/vcpkg" install glib:${{ matrix.triplet }}
+
+      # --- build -----------------------------------------------------------------------------
 
       - name: Configure
-        run: >
-          cmake -B build -G Ninja
-          -DCMAKE_BUILD_TYPE=Release
-          -DHVST_BUILD_TESTS=OFF
-          -DPLECTRO_MINIMAL_FLUIDSYNTH=ON
-          -DPLECTRO_BUNDLE_DEPS=ON
-          -DPLECTRO_ASSETS_DIR=${{ github.workspace }}/sf2
+        shell: bash
+        run: |
+          args=(
+            -B build
+            -DCMAKE_BUILD_TYPE=Release
+            -DHVST_BUILD_TESTS=OFF
+            -DPLECTRO_MINIMAL_FLUIDSYNTH=ON
+            -DPLECTRO_BUNDLE_DEPS=ON
+            -DPLECTRO_ASSETS_DIR="$PWD/sf2"
+          )
+          case "${{ matrix.kind }}" in
+            macos)
+              args+=(-G Ninja -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }})
+              export PKG_CONFIG_PATH="$PWD/vendor/${{ matrix.subdir }}/lib/pkgconfig"
+              ;;
+            linux)
+              args+=(-G Ninja)
+              ;;
+            windows)
+              args+=(
+                -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+                -DVCPKG_TARGET_TRIPLET=${{ matrix.triplet }}
+              )
+              ;;
+          esac
+          cmake "${args[@]}"
 
       - name: Build
-        run: cmake --build build --target plectro_VST3
+        shell: bash
+        run: |
+          targets=(plectro_VST3)
+          [ "${{ matrix.kind }}" = "macos" ] && targets+=(plectro_AU)
+          if [ "${{ matrix.kind }}" = "windows" ]; then
+            # JUCE builds moduleinfo.json by loading the freshly built VST3, whose dependent DLLs
+            # are not next to it yet, so they must be findable on PATH.
+            export PATH="$PWD/build/_deps/fluidsynth-build/src/Release:$VCPKG_INSTALLATION_ROOT/installed/${{ matrix.triplet }}/bin:$PATH"
+            cmake --build build --config Release --target "${targets[@]}"
+          else
+            cmake --build build --target "${targets[@]}"
+          fi
 
-      - name: Verify portability
+      - name: Verify the build matches the requested architecture (macOS)
+        if: matrix.kind == 'macos'
+        # Cross compiling to Intel is easy to get silently wrong; a bundle that came out native
+        # would only be caught by whoever cannot load it.
+        run: |
+          bin=$(find build/plectro_artefacts -type f -path '*/MacOS/*' | head -1)
+          got=$(lipo -archs "$bin")
+          [ "$got" = "${{ matrix.arch }}" ] || { echo "expected ${{ matrix.arch }}, built $got" >&2; exit 1; }
+          echo "Native: $got"
+
+      - name: Verify portability (macOS)
+        if: matrix.kind == 'macos'
+        # The bundles must not reference Homebrew, conda's build prefix or any GPL-3 library.
+        shell: bash
+        run: |
+          fail=0
+          while IFS= read -r macho; do
+            bad=$(otool -L "$macho" 2>/dev/null | tail -n +2 | awk '{print $1}' \
+                  | grep -iE "/opt/homebrew|/usr/local|/vendor/|readline" || true)
+            [ -n "$bad" ] && { echo "LEAK in $macho:"; echo "$bad"; fail=1; }
+          done < <(find build/plectro_artefacts -type f \( -path '*/MacOS/*' -o -path '*/Frameworks/*' \))
+          [ $fail -eq 0 ] && echo "Portable: nothing points outside the bundle."
+          exit $fail
+
+      - name: Verify portability (Linux)
+        if: matrix.kind == 'linux'
         shell: bash
         run: |
           so=$(find build/plectro_artefacts -name '*.so' -path '*-linux*' | head -1)
-          echo "Plugin: $so"
           ldd "$so" || true
           missing=$(ldd "$so" 2>/dev/null | awk '/not found/ {print $1}')
           [ -n "$missing" ] && { echo "Unresolved libraries:"; echo "$missing"; exit 1; }
           echo "All libraries resolve."
 
+      - name: Sign and notarize
+        # Placeholder for Developer ID signing + notarytool + stapler.
+        if: matrix.kind == 'macos' && env.HAS_SIGNING == 'true'
+        run: echo "Signing secrets present; plug Developer ID codesign + notarytool + stapler here."
+
+      # --- package and publish -----------------------------------------------------------------
+
       - name: Package
         shell: bash
         run: |
           mkdir -p dist
-          vst3=$(find build/plectro_artefacts -type d -name 'Plectro.vst3' | head -1)
-          ( cd "$(dirname "$vst3")" && tar -czf - "$(basename "$vst3")" ) > "dist/Plectro-${{ github.ref_name }}-Linux-x86_64-VST3.tar.gz"
+          case "${{ matrix.kind }}" in
+            macos)
+              vst3=$(find build/plectro_artefacts -type d -name 'Plectro.vst3' | head -1)
+              au=$(find build/plectro_artefacts -type d -name 'Plectro.component' | head -1)
+              ditto -c -k --keepParent "$vst3" "dist/Plectro-${{ github.ref_name }}-${{ matrix.label }}-VST3.zip"
+              ditto -c -k --keepParent "$au" "dist/Plectro-${{ github.ref_name }}-${{ matrix.label }}-AU.zip"
+              ;;
+            linux)
+              vst3=$(find build/plectro_artefacts -type d -name 'Plectro.vst3' | head -1)
+              ( cd "$(dirname "$vst3")" && tar -czf - "$(basename "$vst3")" ) \
+                > "dist/Plectro-${{ github.ref_name }}-${{ matrix.label }}-VST3.tar.gz"
+              ;;
+            windows)
+              vst3=$(find build -type d -name 'Plectro.vst3' -path '*artefacts*' | head -1)
+              libdir="$vst3/Contents/x86_64-win"
+              [ -d "$libdir" ] || libdir=$(find "$vst3/Contents" -maxdepth 1 -type d -name '*-win' | head -1)
+              cp "$VCPKG_INSTALLATION_ROOT/installed/${{ matrix.triplet }}/bin/"*.dll "$libdir/" || true
+              ( cd "$(dirname "$vst3")" && 7z a -tzip "x.zip" "$(basename "$vst3")" >/dev/null )
+              mv "$(dirname "$vst3")/x.zip" "dist/Plectro-${{ github.ref_name }}-${{ matrix.label }}-VST3.zip"
+              ;;
+          esac
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
+        # Free on a public repository, unlike the private Pro repo where this is what filled the quota.
         with:
-          name: plectro-linux
-          path: dist/*.tar.gz
+          name: plectro-${{ matrix.label }}
+          path: dist/*
 
       - name: Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.tar.gz
+          files: dist/*
           fail_on_unmatched_files: true
           body: |
-            ## Plectro ${{ github.ref_name }} (Linux)
+            ## Plectro ${{ github.ref_name }}
 
-            Linux x86_64 VST3. FluidSynth and glib are bundled inside the plugin, so no extra
-            packages are needed.
+            The free humanized plucked string instrument (bandurria, laud, mandolina) for MuseScore
+            and any VST3/AU host. FluidSynth and glib ride inside the bundle, so nothing else is
+            needed.
 
-            ### Install
-            - Unpack and move `Plectro.vst3` to `~/.vst3/`
-
-            Then restart your host.
-
-  windows:
-    name: Windows (x64)
-    runs-on: windows-2022
-    env:
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/vcpkg-cache
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - name: Cache vcpkg binaries
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/vcpkg-cache
-          key: vcpkg-glib-x64-windows-v1
-
-      - name: Install glib (vcpkg)
-        shell: bash
-        run: |
-          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
-          "$VCPKG_INSTALLATION_ROOT/vcpkg" install glib:x64-windows
-
-      - name: Provide the SoundFont
-        shell: bash
-        env:
-          SF2_URL: ${{ secrets.PLECTRO_SF2_URL }}
-        run: |
-          mkdir -p sf2
-          if [ -f assets/Plectro.sf2 ]; then
-            cp assets/Plectro.sf2 sf2/Plectro.sf2
-          elif [ -n "$SF2_URL" ]; then
-            curl -fsSL "$SF2_URL" -o sf2/Plectro.sf2
-          else
-            echo "No SoundFont: commit assets/Plectro.sf2 or set the PLECTRO_SF2_URL secret." >&2
-            exit 1
-          fi
-
-      - name: Configure
-        shell: bash
-        run: >
-          cmake -B build
-          -DHVST_BUILD_TESTS=OFF
-          -DPLECTRO_MINIMAL_FLUIDSYNTH=ON
-          -DPLECTRO_BUNDLE_DEPS=ON
-          -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
-          -DVCPKG_TARGET_TRIPLET=x64-windows
-          -DPLECTRO_ASSETS_DIR=${{ github.workspace }}/sf2
-
-      - name: Build
-        shell: pwsh
-        # JUCE builds moduleinfo.json by loading the freshly built VST3, whose dependent DLLs
-        # (FluidSynth and glib) are not next to it yet, so they must be findable on PATH.
-        run: |
-          $env:PATH = "$PWD\build\_deps\fluidsynth-build\src\Release;$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin;$env:PATH"
-          cmake --build build --config Release --target plectro_VST3
-
-      - name: Package
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path dist | Out-Null
-          $vst3 = (Get-ChildItem -Recurse -Directory -Filter 'Plectro.vst3' build | Select-Object -First 1).FullName
-          $libdir = Join-Path $vst3 'Contents\x86_64-win'
-          Copy-Item "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin\*.dll" $libdir -Force
-          Compress-Archive -Path $vst3 -DestinationPath "dist/Plectro-${{ github.ref_name }}-Windows-x64-VST3.zip" -Force
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: plectro-windows
-          path: dist/*.zip
-
-      - name: Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*.zip
-          fail_on_unmatched_files: true
-          body: |
-            ## Plectro ${{ github.ref_name }} (Windows)
-
-            Windows x64 VST3. FluidSynth and glib are bundled next to the plugin, so no extra
-            packages are needed.
+            Built for macOS (arm64 and Intel), Linux (x86_64 and arm64) and Windows (x64 and arm64).
+            Pick the file that matches your machine.
 
             ### Install
-            - Unzip and move the `Plectro.vst3` folder to `%COMMONPROGRAMFILES%\VST3\`
+            - macOS VST3: `~/Library/Audio/Plug-Ins/VST3/` &nbsp; AU: `~/Library/Audio/Plug-Ins/Components/`
+            - Linux: `~/.vst3/`
+            - Windows: `%COMMONPROGRAMFILES%\VST3\`
 
-            Then restart your host.
+            Then restart your host. macOS bundles are ad-hoc signed, so clear Gatekeeper with
+            `xattr -dr com.apple.quarantine` on the installed bundle.

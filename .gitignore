@@ -2,6 +2,9 @@ build/
 build*/
 dist/
 cmake-build-*/
+
+# Prebuilt macOS dependencies fetched per architecture by scripts/vendor-macos-deps.sh.
+/vendor/
 .cache/
 compile_commands.json
 

@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(plectro-vst VERSION 0.2.1 LANGUAGES C CXX)
+# The version the built plugins declare to the host. CI derives it from the git tag so a bundle
+# always reports the release it came from (a build one commit past v0.2.3 declares 0.2.3.1); a local
+# build without it falls back to the value here, which should track the latest tag.
+set(PLECTRO_VERSION "0.2.3" CACHE STRING "Version the plugin binaries declare")
+project(plectro-vst VERSION ${PLECTRO_VERSION} LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
