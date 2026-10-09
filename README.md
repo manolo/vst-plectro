@@ -144,23 +144,52 @@ MuseScore (normal tremolo beams + normal ornaments + normal dynamics)
 The articulation, detection and streaming logic live in a JUCE free, unit tested static library
 (`plectro_core`); the plugin is a thin JUCE wrapper plus a FluidSynth adapter.
 
-## Install
+## Download
 
-Download the bundle for your format from the [Releases](../../releases) tab and unzip it. Move it
-into your plugin folder, then restart your host:
+Everything is on the [Releases](../../releases) tab. Take **one** file: the format your host wants
+for the machine you are on. On macOS a single universal bundle covers both Apple Silicon and Intel,
+so there is nothing to choose there.
 
-- macOS VST3: `~/Library/Audio/Plug-Ins/VST3/`
-- macOS AU: `~/Library/Audio/Plug-Ins/Components/`
-- Windows VST3: `C:\Program Files\Common Files\VST3\`
+| Download | Use it in | Unzip into |
+|---|---|---|
+| `macOS-universal-VST3.zip` | MuseScore, Reaper, Live, Bitwig, Cubase, Dorico | `~/Library/Audio/Plug-Ins/VST3/` |
+| `macOS-universal-AU.zip` | Logic Pro, GarageBand, Final Cut | `~/Library/Audio/Plug-Ins/Components/` |
+| `macOS-universal-VST2.zip` | Sibelius only (see below) | `/Library/Audio/Plug-Ins/VST/` |
+| `Linux-x86_64-VST3.tar.gz` | MuseScore, Reaper, Ardour, Bitwig | `~/.vst3/` |
+| `Linux-arm64-VST3.tar.gz` | the same, on ARM boards and ARM servers | `~/.vst3/` |
+| `Windows-x64-VST3.zip` | MuseScore, Reaper, Cubase, Live, Studio One | `C:\Program Files\Common Files\VST3\` |
+| `Windows-arm64-VST3.zip` | the same, on Windows on ARM machines | `C:\Program Files\Common Files\VST3\` |
 
-The bundles are **not code signed or notarized**, so your system blocks them the first time and you
-have to allow them by hand, once:
+Restart your host after copying. VST3 is the format to pick unless your host asks for another one;
+AU exists because Logic and GarageBand take nothing else.
 
-- **macOS:** opening a plugin from Finder does not clear its quarantine, so after copying the bundles
-  into the folders above, and before you open your host, clear the flag from a terminal with
-  `sudo xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/Plectro*.vst3 ~/Library/Audio/Plug-Ins/Components/Plectro*.component`.
-  If your host still does not list it, allow it in **System Settings > Privacy & Security**.
-- **Windows:** on the SmartScreen warning choose **More info > Run anyway**.
+
+**Sibelius needs the VST2 file**, and it is the one case where the rules above change. Sibelius
+loads no third party Audio Unit, only VST, and it scans `/Library/Audio/Plug-Ins/VST` rather than
+the user folder, so the VST2 bundle has to go in that system path. Any other host should ignore
+that file and use VST3 or AU.
+
+## Allowing the plugin to run
+
+The bundles are **not code signed or notarized**. Your system will block them the first time, and
+you have to allow them by hand, once.
+
+**macOS.** Opening a plugin from Finder does not clear its quarantine flag. After copying the
+bundles into the folders above, and before you open your host, run this in a terminal:
+
+```bash
+sudo xattr -dr com.apple.quarantine \
+  ~/Library/Audio/Plug-Ins/VST3/Plectro*.vst3 \
+  ~/Library/Audio/Plug-Ins/Components/Plectro*.component \
+  /Library/Audio/Plug-Ins/VST/Plectro*.vst
+```
+
+Leave out any line for a format you did not install. If your host still does not list the plugin,
+allow it in **System Settings > Privacy & Security**, where macOS reports what it blocked.
+
+**Windows.** On the SmartScreen warning choose **More info > Run anyway**.
+
+**Linux.** Nothing to allow; unpack it and go.
 
 ## Use in MuseScore 4
 
