@@ -92,7 +92,7 @@ allow it in **System Settings > Privacy & Security**, where macOS reports what i
 - **Tremolo:** turns the host's measured tremolo into one sustained voice. **Tremolo Window** sets how wide a repeated note burst still counts as one tremolo, and **tr** also captures trills and ornaments as a single tremolo. The **window** and **keyswitch** LEDs light for the source driving the current tremolo.
 - **Output:** the output stage. **Gain** sets the level, with the peak meter below it.
 
-## Tremolo, two techniques
+## Tremolo
 
 A notation host renders a measured tremolo as a rapid burst of repeated note ons. Plectro turns that
 back into one sustained tremolo voice instead of a machine gun of retriggers, and it supports **two**
@@ -102,10 +102,9 @@ ways to know a note is a tremolo, using whichever the host allows:
   window, and collapses it into one tremolo. It needs no setup and works in any host, so it is the
   fallback wherever a host does not send keyswitches.
 - **Keyswitches (the optimal path).** Plectro advertises its articulations as VST3 keyswitches
-  (`IKeyswitchController`), so a host that supports them selects the articulation explicitly and
-  unambiguously, and automatic detection is not needed. Not every host sends keyswitches to
-  instrument plugins: MuseScore does not in a released version yet, with the change proposed upstream
-  in [muse_framework#183](https://github.com/musescore/muse_framework/pull/183).
+  (`IKeyswitchController`), so a host that supports them picks the articulation explicitly and
+  detection is not needed. Not every host sends keyswitches to instrument plugins; see
+  [Articulations across hosts](#articulations-across-hosts) for which ones do.
 
 Because tremolo no longer has to be encoded in velocity, the host's hairpins and dynamics flow
 through as real loudness.
@@ -152,24 +151,20 @@ The MIDI number is the reference; hosts label MIDI 0 as C-1 (Cubase, Dorico, Mus
 (Logic, GarageBand). Full per host instructions, the complete map and a manual smoke test are in
 [docs/articulations.md](docs/articulations.md).
 
-## Full support in MuseScore
+### What MuseScore still needs
 
-Plectro runs in any VST3 / AU host today, and in MuseScore it plays out of the box through automatic
-detection. Two changes to MuseScore's audio framework remove the remaining workarounds and let it
-drive Plectro straight from the notation. Both are proposed upstream; until they ship in a MuseScore
-release, Plectro falls back to a less exact path:
+MuseScore plays Plectro out of the box today through automatic detection. Two changes to its audio
+framework, both proposed upstream, would let it drive the plugin straight from the notation:
 
 - **Keyswitch delivery** ([muse_framework#183](https://github.com/musescore/muse_framework/pull/183)):
-  MuseScore tells the plugin each note's articulation explicitly (pizzicato, tremolo, mute, harmonic,
-  legato) through `IKeyswitchController`, instead of Plectro inferring it from repeated note bursts.
-  Fallback: automatic detection, which cannot always tell an ornament from a tremolo.
+  MuseScore would send each note's articulation explicitly instead of Plectro inferring it from
+  repeated note bursts. Until then, detection cannot always tell an ornament from a tremolo.
 - **Layered articulation dynamics**
   ([muse_framework#179](https://github.com/musescore/muse_framework/pull/179)): fixes slurred
-  tremolos and slurred grace notes playing back silently in MuseScore 5.0, so those passages sound at
-  their real dynamic. Without it the only workaround is to not slur them.
+  tremolos and slurred grace notes playing back silently in MuseScore 5.0. Until then, the
+  workaround is to not slur them.
 
-Both changes are no-ops for other instruments and for the FluidSynth and MuseSampler backends. With
-them merged, MuseScore drives Plectro from ordinary notation with no hacks or workarounds.
+Both are no-ops for other instruments and for the FluidSynth and MuseSampler backends.
 
 ## Sound
 
