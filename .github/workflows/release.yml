@@ -44,6 +44,20 @@ jobs:
         with:
           lfs: true # the bundled SoundFont is stored in git-lfs
 
+      - name: Derive the version from the tag
+        # Without this the bundles declare whatever default sits in CMakeLists.txt, so a v0.2.4
+        # release shipped binaries that told the host they were 0.2.3.
+        shell: bash
+        run: |
+          v="${{ github.ref_name }}"
+          v="${v#v}"
+          if [[ "$v" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
+            echo "PLECTRO_VERSION=$v" >> "$GITHUB_ENV"
+            echo "Plugin version: $v"
+          else
+            echo "Ref '${{ github.ref_name }}' is not a version; keeping the CMakeLists default"
+          fi
+
       - name: Provide the SoundFont
         # The free SoundFont (CC0) may not be committed. Commit it at assets/Plectro.sf2, or set the
         # PLECTRO_SF2_URL repository secret to a direct download URL.
@@ -111,6 +125,7 @@ jobs:
             -DPLECTRO_BUNDLE_DEPS=ON
             -DPLECTRO_ASSETS_DIR="$PWD/sf2"
           )
+          [ -n "${PLECTRO_VERSION:-}" ] && args+=(-DPLECTRO_VERSION="$PLECTRO_VERSION")
           case "${{ matrix.kind }}" in
             macos)
               args+=(-G Ninja -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }})
@@ -141,6 +156,15 @@ jobs:
           else
             cmake --build build --target "${targets[@]}"
           fi
+
+      - name: Verify the bundle declares the derived version
+        if: env.PLECTRO_VERSION != ''
+        shell: bash
+        run: |
+          info=$(find build/plectro_artefacts -name moduleinfo.json | head -1)
+          got=$(sed -n 's/.*"Version"[^"]*"\([^"]*\)".*/\1/p' "$info" | head -1)
+          [ "$got" = "$PLECTRO_VERSION" ] || { echo "bundle declares $got, expected $PLECTRO_VERSION" >&2; exit 1; }
+          echo "Bundle declares $got"
 
       - name: Verify the build matches the requested architecture (macOS)
         if: matrix.kind == 'macos'
