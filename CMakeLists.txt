@@ -83,6 +83,28 @@ if(HVST_BUILD_PLUGIN)
         endif()
     endif()
 
+    # Sibelius 8 does not load third party Audio Units: of the instrument AUs installed on a
+    # machine it lists only Apple's, and the only third party instrument it picks up is a VST2.
+    # So playing these plugins there needs the VST2 format, which JUCE can only build against a
+    # legacy SDK that Steinberg withdrew in 2018. Point this at one and the VST2 target appears.
+    #
+    # Strictly a local convenience: distributing a VST2 binary requires a Steinberg licence that
+    # is no longer granted, so CI never sets this and the built .vst must not be published.
+    set(PLECTRO_VST2_SDK "" CACHE PATH "Legacy VST2 SDK directory; enables the VST2 format locally")
+
+    set(_plectro_formats VST3 AU)
+    if(PLECTRO_VST2_SDK)
+        if(NOT EXISTS "${PLECTRO_VST2_SDK}/pluginterfaces/vst2.x/aeffect.h")
+            message(FATAL_ERROR
+                "PLECTRO_VST2_SDK=${PLECTRO_VST2_SDK} has no pluginterfaces/vst2.x/aeffect.h. "
+                "Point it at the root of a VST3 SDK 3.6.10 or older, which still carried the "
+                "VST2 headers.")
+        endif()
+        juce_set_vst2_sdk_path("${PLECTRO_VST2_SDK}")
+        list(APPEND _plectro_formats VST)
+        message(STATUS "VST2 enabled from ${PLECTRO_VST2_SDK} (local use only, do not distribute)")
+    endif()
+
     # One helper builds an edition. pro is 0 or 1; code is the 4 char JUCE plugin code;
     # sf2 is the asset file name copied into the bundle Resources.
     function(add_plectro_edition target productName code pro sf2)
@@ -91,7 +113,7 @@ if(HVST_BUILD_PLUGIN)
             COMPANY_NAME "Do2tis"
             PLUGIN_MANUFACTURER_CODE Do2t
             PLUGIN_CODE ${code}
-            FORMATS VST3 AU
+            FORMATS ${_plectro_formats}
             IS_SYNTH TRUE
             NEEDS_MIDI_INPUT TRUE
             NEEDS_MIDI_OUTPUT FALSE
@@ -141,7 +163,7 @@ if(HVST_BUILD_PLUGIN)
         # Copy the edition SF2 into each built plugin bundle's Resources folder.
         set(_sf2 "${PLECTRO_ASSETS_DIR}/${sf2}")
         if(EXISTS "${_sf2}")
-            foreach(fmt VST3 AU)
+            foreach(fmt VST3 AU VST) # VST = the legacy VST2 bundle, only present when PLECTRO_VST2_SDK is set
                 if(TARGET ${target}_${fmt})
                     add_custom_command(TARGET ${target}_${fmt} POST_BUILD
                         COMMAND ${CMAKE_COMMAND} -E make_directory
@@ -158,7 +180,7 @@ if(HVST_BUILD_PLUGIN)
         # Make each bundle portable (embed FluidSynth + deps, rewrite to @rpath, ad-hoc re-sign).
         # Runs after the SF2 copy so the signature covers the final bundle contents.
         if(APPLE AND PLECTRO_BUNDLE_DEPS)
-            foreach(fmt VST3 AU)
+            foreach(fmt VST3 AU VST) # VST = the legacy VST2 bundle, only present when PLECTRO_VST2_SDK is set
                 if(TARGET ${target}_${fmt})
                     # A minimal FluidSynth built in tree is referenced via @rpath, so copy it into
                     # the bundle first; the bundler then follows its Homebrew glib dependencies.

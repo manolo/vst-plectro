@@ -216,7 +216,9 @@ jobs:
           path: dist/*
 
       - name: Release
-        if: startsWith(github.ref, 'refs/tags/')
+        # macOS is published by the macos-universal job below, from both architectures fused into
+        # one bundle, so that nobody has to know which processor their Mac has.
+        if: startsWith(github.ref, 'refs/tags/') && matrix.kind != 'macos'
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
@@ -228,8 +230,9 @@ jobs:
             and any VST3/AU host. FluidSynth and glib ride inside the bundle, so nothing else is
             needed.
 
-            Built for macOS (arm64 and Intel), Linux (x86_64 and arm64) and Windows (x64 and arm64).
-            Pick the file that matches your machine.
+            Built for macOS (one universal bundle for Apple Silicon and Intel), Linux (x86_64 and
+            arm64) and Windows (x64 and arm64). On macOS take the universal file; elsewhere pick
+            the one matching your machine.
 
             ### Install
             - macOS VST3: `~/Library/Audio/Plug-Ins/VST3/` &nbsp; AU: `~/Library/Audio/Plug-Ins/Components/`
@@ -238,3 +241,55 @@ jobs:
 
             Then restart your host. macOS bundles are ad-hoc signed, so clear Gatekeeper with
             `xattr -dr com.apple.quarantine` on the installed bundle.
+
+  macos-universal:
+    name: macOS universal
+    needs: build
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false # only scripts/lipo-macos-bundle.sh is needed; the bundles come from the artifacts
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: plectro-macOS-*
+          path: artifacts
+
+      - name: Fuse both architectures
+        shell: bash
+        run: |
+          mkdir -p dist
+          for fmt in VST3 AU; do
+            rm -rf in && mkdir -p in/arm64 in/x86_64
+            ditto -x -k "artifacts/plectro-macOS-arm64/Plectro-${{ github.ref_name }}-macOS-arm64-$fmt.zip"   in/arm64
+            ditto -x -k "artifacts/plectro-macOS-x86_64/Plectro-${{ github.ref_name }}-macOS-x86_64-$fmt.zip" in/x86_64
+            bundle=$(cd in/arm64 && /bin/ls -d -- *)
+            ./scripts/lipo-macos-bundle.sh "in/arm64/$bundle" "in/x86_64/$bundle" "universal/$bundle"
+            ditto -c -k --keepParent "universal/$bundle" "dist/Plectro-${{ github.ref_name }}-macOS-universal-$fmt.zip"
+          done
+
+      - name: Verify the result carries both architectures
+        shell: bash
+        run: |
+          fail=0
+          while IFS= read -r macho; do
+            archs=$(lipo -archs "$macho" 2>/dev/null || true)
+            [ -z "$archs" ] && continue
+            case " $archs " in *" arm64 "*) ;; *) echo "NO arm64: $macho"; fail=1 ;; esac
+            case " $archs " in *" x86_64 "*) ;; *) echo "NO x86_64: $macho"; fail=1 ;; esac
+          done < <(find universal -type f)
+          [ $fail -eq 0 ] && echo "Universal: every Mach-O carries both architectures."
+          exit $fail
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plectro-macOS-universal
+          path: dist/*
+
+      - name: Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          fail_on_unmatched_files: true
