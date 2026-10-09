@@ -1,18 +1,20 @@
 # Plectro VST
 
-A VST3 / AudioUnit **instrument** for the Spanish plucked plectrum family ("pulso y pua":
-bandurria, laud). It loads inside MuseScore 4 (or any VST3/AU host) as the sound source for a
-staff, plays a bundled SoundFont, and makes the two things MuseScore renders badly on these
+An **instrument plugin** for the Spanish plucked plectrum family ("pulso y pua": bandurria, laud).
+It loads inside MuseScore 4, Sibelius, Logic or any other host as the sound source for a staff,
+plays a bundled SoundFont, and makes the two things notation software renders badly on these
 instruments, **tremolo** and **trills**, sound like a real player instead of a sequencer. The whole
-workflow stays in MuseScore: ordinary tremolo beams and ordinary ornaments, no velocity hacks.
+workflow stays in the notation: ordinary tremolo beams and ordinary ornaments, no velocity hacks.
 
-Getting a natural bandurria or laud tremolo in MuseScore used to be a chore. The previous approach,
-the [Pulso y Pua](https://musescore.org/en/project/pulso-y-pua-tremolo-and-soundfont-manager)
-plugin had to encode the tremolo in each note's MIDI velocity and disable the
-playback of tremolo symbols, tied notes, dynamics, articulations, ornaments and dynamics that would break
-that velocity trick, and you had to run it again every time the music changed. Plectro VST3 needs none of
-that. It reads the notation live, so you keep your real dynamics and ornaments and never touch
-velocity.
+Ships as **VST3**, **Audio Unit** and **VST2**, for macOS, Linux and Windows. Take VST3 unless your
+host says otherwise; see [Download](#download).
+
+Getting a natural bandurria or laud tremolo used to be a chore. The previous approach, the
+[Pulso y Pua](https://musescore.org/en/project/pulso-y-pua-tremolo-and-soundfont-manager) plugin,
+encoded the tremolo in each note's MIDI velocity, which meant disabling the playback of tremolo
+symbols, tied notes, dynamics, articulations and ornaments so they would not break the trick, and
+rerunning it every time the music changed. Plectro reads the notation live instead, so your real
+dynamics and ornaments stay as written and velocity is never touched.
 
 
 ## Demo
@@ -27,6 +29,60 @@ The demo is recorded in MuseScore, switching a score's staves from the Muse Soun
 Guitar" to Plectro's Bandurria and Laud: the sound changes to a real plucked instrument, and the
 tremolos change from a machine gun of repeated notes to a natural one. In any other VST3 / AU host
 the process is similar: load Plectro on the track and write ordinary tremolos.
+
+## Download
+
+Everything is on the [Releases](../../releases) tab. Take **one** file: the format your host wants
+for the machine you are on. On macOS a single universal bundle covers both Apple Silicon and Intel,
+so there is nothing to choose there.
+
+| Download | Use it in | Unzip into |
+|---|---|---|
+| `macOS-universal-VST3.zip` | MuseScore, Sibelius 2026.5+, Reaper, Live, Bitwig, Cubase, Dorico | `~/Library/Audio/Plug-Ins/VST3/` |
+| `macOS-universal-AU.zip` | Logic Pro, GarageBand, Final Cut | `~/Library/Audio/Plug-Ins/Components/` |
+| `macOS-universal-VST2.zip` | older Sibelius only (see below) | `/Library/Audio/Plug-Ins/VST/` |
+| `Linux-x86_64-VST3.tar.gz` | MuseScore, Reaper, Ardour, Bitwig | `~/.vst3/` |
+| `Linux-arm64-VST3.tar.gz` | the same, on ARM boards and ARM servers | `~/.vst3/` |
+| `Windows-x64-VST3.zip` | MuseScore, Reaper, Cubase, Live, Studio One | `C:\Program Files\Common Files\VST3\` |
+| `Windows-arm64-VST3.zip` | the same, on Windows on ARM machines | `C:\Program Files\Common Files\VST3\` |
+
+Restart your host after copying. VST3 is the format to pick unless your host asks for another one;
+AU exists because Logic and GarageBand take nothing else.
+
+
+### Sibelius
+
+Which file you need depends on the version, and it is the one case where the rules above change.
+
+- **Sibelius 2026.5 or newer** supports VST3, so take the ordinary VST3 file. It appears in Playback
+  Devices on its own.
+- **Older Sibelius needs the VST2 file.** Those versions load no third party Audio Unit, only VST2,
+  and they scan `/Library/Audio/Plug-Ins/VST` rather than the user folder, so that bundle has to go
+  in the system path.
+
+Any other host should ignore the VST2 file and use VST3 or AU.
+
+## Allowing the plugin to run
+
+The bundles are **not code signed or notarized**. Your system will block them the first time, and
+you have to allow them by hand, once.
+
+**macOS.** Opening a plugin from Finder does not clear its quarantine flag. After copying the
+bundles into the folders above, and before you open your host, run this in a terminal:
+
+```bash
+sudo xattr -dr com.apple.quarantine \
+  ~/Library/Audio/Plug-Ins/VST3/Plectro*.vst3 \
+  ~/Library/Audio/Plug-Ins/Components/Plectro*.component \
+  /Library/Audio/Plug-Ins/VST/Plectro*.vst
+```
+
+Leave out any line for a format you did not install. If your host still does not list the plugin,
+allow it in **System Settings > Privacy & Security**, where macOS reports what it blocked.
+
+**Windows.** On the SmartScreen warning choose **More info > Run anyway**.
+
+**Linux.** Nothing to allow; unpack it and go.
 
 ## Usage
 
@@ -88,6 +144,8 @@ Hosts reach that map in one of three ways:
 | GarageBand (macOS) | Audio Unit | Manual keyswitch notes |
 | GarageBand (iOS) | AUv3 | Not supported yet (future work) |
 | MuseScore (fork) | VST3 | Auto discovery |
+| Sibelius 2026.5+ | VST3 | Manual keyswitch notes |
+| Sibelius, older | VST2 | Manual keyswitch notes |
 | REAPER, Ableton Live, others | VST3/AU | Manual keyswitch notes |
 
 The MIDI number is the reference; hosts label MIDI 0 as C-1 (Cubase, Dorico, MuseScore) or C-2
@@ -144,53 +202,6 @@ MuseScore (normal tremolo beams + normal ornaments + normal dynamics)
 The articulation, detection and streaming logic live in a JUCE free, unit tested static library
 (`plectro_core`); the plugin is a thin JUCE wrapper plus a FluidSynth adapter.
 
-## Download
-
-Everything is on the [Releases](../../releases) tab. Take **one** file: the format your host wants
-for the machine you are on. On macOS a single universal bundle covers both Apple Silicon and Intel,
-so there is nothing to choose there.
-
-| Download | Use it in | Unzip into |
-|---|---|---|
-| `macOS-universal-VST3.zip` | MuseScore, Reaper, Live, Bitwig, Cubase, Dorico | `~/Library/Audio/Plug-Ins/VST3/` |
-| `macOS-universal-AU.zip` | Logic Pro, GarageBand, Final Cut | `~/Library/Audio/Plug-Ins/Components/` |
-| `macOS-universal-VST2.zip` | Sibelius only (see below) | `/Library/Audio/Plug-Ins/VST/` |
-| `Linux-x86_64-VST3.tar.gz` | MuseScore, Reaper, Ardour, Bitwig | `~/.vst3/` |
-| `Linux-arm64-VST3.tar.gz` | the same, on ARM boards and ARM servers | `~/.vst3/` |
-| `Windows-x64-VST3.zip` | MuseScore, Reaper, Cubase, Live, Studio One | `C:\Program Files\Common Files\VST3\` |
-| `Windows-arm64-VST3.zip` | the same, on Windows on ARM machines | `C:\Program Files\Common Files\VST3\` |
-
-Restart your host after copying. VST3 is the format to pick unless your host asks for another one;
-AU exists because Logic and GarageBand take nothing else.
-
-
-**Sibelius needs the VST2 file**, and it is the one case where the rules above change. Sibelius
-loads no third party Audio Unit, only VST, and it scans `/Library/Audio/Plug-Ins/VST` rather than
-the user folder, so the VST2 bundle has to go in that system path. Any other host should ignore
-that file and use VST3 or AU.
-
-## Allowing the plugin to run
-
-The bundles are **not code signed or notarized**. Your system will block them the first time, and
-you have to allow them by hand, once.
-
-**macOS.** Opening a plugin from Finder does not clear its quarantine flag. After copying the
-bundles into the folders above, and before you open your host, run this in a terminal:
-
-```bash
-sudo xattr -dr com.apple.quarantine \
-  ~/Library/Audio/Plug-Ins/VST3/Plectro*.vst3 \
-  ~/Library/Audio/Plug-Ins/Components/Plectro*.component \
-  /Library/Audio/Plug-Ins/VST/Plectro*.vst
-```
-
-Leave out any line for a format you did not install. If your host still does not list the plugin,
-allow it in **System Settings > Privacy & Security**, where macOS reports what it blocked.
-
-**Windows.** On the SmartScreen warning choose **More info > Run anyway**.
-
-**Linux.** Nothing to allow; unpack it and go.
-
 ## Use in MuseScore 4
 
 1. Open the Mixer (F10), pick the bandurria/laud staff, and set its sound to **Plectro**.
@@ -223,7 +234,7 @@ ctest --test-dir build --output-on-failure
 ```
 
 To run a local build, copy the freshly built bundle from `build/` into the plugin folder listed
-under Install. A bundle you built yourself is not quarantined, so the quarantine step above does not
+under [Download](#download). A bundle you built yourself is not quarantined, so that step does not
 apply to it.
 
 ## License
