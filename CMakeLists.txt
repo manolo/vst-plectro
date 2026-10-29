@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.22)
 # The version the built plugins declare to the host. CI derives it from the git tag so a bundle
 # always reports the release it came from (a build one commit past v0.2.3 declares 0.2.3.1); a local
 # build without it falls back to the value here, which should track the latest tag.
-set(PLECTRO_VERSION "0.2.3" CACHE STRING "Version the plugin binaries declare")
+set(PLECTRO_VERSION "0.2.5" CACHE STRING "Version the plugin binaries declare")
 project(plectro-vst VERSION ${PLECTRO_VERSION} LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -160,6 +160,24 @@ if(HVST_BUILD_PLUGIN)
             message(WARNING "${target}: FluidSynth NOT found, building a SILENT plugin")
         endif()
 
+        # Windows: a VST3 host loads the plugin with a plain LoadLibraryW, which never searches the
+        # plugin's own folder for its dependent DLLs, so the FluidSynth that rides inside the bundle
+        # is not found and the whole plugin fails to load. Delay load it and resolve it by absolute
+        # path instead; source/WindowsDelayLoad.cpp explains the mechanism. The hook goes on the
+        # format target rather than on the shared code library, so the linker cannot drop it in
+        # favour of the null default that delayimp.lib carries.
+        if(WIN32 AND MSVC AND TARGET libfluidsynth)
+            foreach(fmt VST3 VST) # VST = the legacy VST2 bundle, only present when PLECTRO_VST2_SDK is set
+                if(TARGET ${target}_${fmt})
+                    target_sources(${target}_${fmt} PRIVATE
+                        "${CMAKE_CURRENT_SOURCE_DIR}/source/WindowsDelayLoad.cpp")
+                    target_link_libraries(${target}_${fmt} PRIVATE delayimp)
+                    target_link_options(${target}_${fmt} PRIVATE
+                        "/DELAYLOAD:$<TARGET_FILE_NAME:libfluidsynth>")
+                endif()
+            endforeach()
+        endif()
+
         # Copy the edition SF2 into each built plugin bundle's Resources folder.
         set(_sf2 "${PLECTRO_ASSETS_DIR}/${sf2}")
         if(EXISTS "${_sf2}")
@@ -218,8 +236,9 @@ if(HVST_BUILD_PLUGIN)
             endif()
         elseif(WIN32 AND PLECTRO_BUNDLE_DEPS)
             # Windows: no AU, only VST3. Copy FluidSynth and its glib DLL dependencies next to the
-            # plugin so it loads without the user installing them (Windows resolves DLLs from the
-            # module's own directory). TARGET_RUNTIME_DLLS resolves the transitive shared deps.
+            # plugin so it loads without the user installing them. They sit beside the plugin binary
+            # but the loader does not look there on its own, which is what the delay load hook above
+            # is for. TARGET_RUNTIME_DLLS resolves the transitive shared deps.
             if(TARGET ${target}_VST3)
                 add_custom_command(TARGET ${target}_VST3 POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different

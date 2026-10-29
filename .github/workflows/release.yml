@@ -233,6 +233,36 @@ jobs:
               ;;
           esac
 
+      - name: Verify it loads with a plain LoadLibraryW (Windows)
+        if: matrix.kind == 'windows'
+        # The VST3 SDK's own loader (public.sdk/source/vst/hosting/module_win32.cpp, the one
+        # MuseScore uses) calls LoadLibraryW with no flags, so Windows resolves the plugin's
+        # dependent DLLs against the host executable's folder, the system folders and PATH, never
+        # against the plugin's own folder. Load it exactly that way, from a process whose
+        # executable lives elsewhere and with the bundle absent from PATH, so a plugin that only
+        # loads in a friendlier host fails here instead of on the user's machine.
+        shell: pwsh
+        run: |
+          $vst3 = (Get-ChildItem -Recurse -Directory -Filter 'Plectro.vst3' build | Select-Object -First 1).FullName
+          $libdir = (Get-ChildItem -Directory (Join-Path $vst3 'Contents') | Where-Object { $_.Name -like '*-win' } | Select-Object -First 1).FullName
+          $bin = (Get-ChildItem -File -Path $libdir -Filter '*.vst3' | Select-Object -First 1).FullName
+          if (-not $bin) { throw "No plugin binary under $libdir" }
+          if (($env:PATH -split ';') -contains $libdir) { throw "$libdir is on PATH, so the test would prove nothing" }
+          "Loading $bin"
+          $sig = '[DllImport("kernel32.dll", SetLastError=true, CharSet=CharSet.Unicode)] public static extern IntPtr LoadLibraryW(string path);'
+          Add-Type -Namespace Plectro -Name Loader -MemberDefinition $sig
+          # Control: a path that cannot possibly load must come back null, or a green result here
+          # would mean nothing.
+          if ([Plectro.Loader]::LoadLibraryW((Join-Path $libdir 'no-such-plectro.dll')) -ne [IntPtr]::Zero) {
+            throw "The loader returned a handle for a file that does not exist"
+          }
+          $h = [Plectro.Loader]::LoadLibraryW($bin)
+          if ($h -eq [IntPtr]::Zero) {
+            $code = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+            throw "LoadLibraryW failed with $code ($([ComponentModel.Win32Exception]::new($code).Message))"
+          }
+          "Loaded, handle $h"
+
       - uses: actions/upload-artifact@v4
         # Free on a public repository, unlike the private Pro repo where this is what filled the quota.
         with:
